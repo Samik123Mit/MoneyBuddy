@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ledger_sync.core.auth.tokens import create_tokens, verify_token
+from moneybuddy.core.auth.tokens import create_tokens, verify_token
 
 
 def test_new_tokens_encode_tv_claim():
@@ -31,7 +31,7 @@ def test_missing_tv_soft_accepted_as_zero(monkeypatch):
 
     import jwt as pyjwt
 
-    from ledger_sync.config.settings import settings
+    from moneybuddy.config.settings import settings
 
     legacy_payload = {
         "sub": "42",
@@ -54,7 +54,7 @@ def test_missing_tv_rejected_in_strict_mode(monkeypatch):
 
     import jwt as pyjwt
 
-    from ledger_sync.config.settings import settings
+    from moneybuddy.config.settings import settings
 
     legacy_payload = {
         "sub": "42",

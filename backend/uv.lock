@@ -747,7 +747,7 @@ wheels = [
 ]
 
 [[package]]
-name = "ledger-sync"
+name = "moneybuddy"
 version = "2.24.0"
 source = { editable = "." }
 dependencies = [

@@ -11,7 +11,7 @@ concurrency:
 jobs:
   # Frontend: lint -> build (tsc -b) -> test, via the shared reusable workflow.
   frontend:
-    uses: Sagargupta16/shared-workflows/.github/workflows/node-ci.yml@main
+    uses: Samik123Mit/shared-workflows/.github/workflows/node-ci.yml@main
     with:
       working-directory: frontend
 
@@ -61,12 +61,12 @@ jobs:
       # a new contributor cannot bootstrap at all.
       - name: Alembic upgrade from an empty database
         env:
-          LEDGER_SYNC_DATABASE_URL: sqlite:///./ci_migration_check.db
-          LEDGER_SYNC_JWT_SECRET_KEY: ci-secret-key-at-least-32-characters-long
+          MONEYBUDDY_DATABASE_URL: sqlite:///./ci_migration_check.db
+          MONEYBUDDY_JWT_SECRET_KEY: ci-secret-key-at-least-32-characters-long
         run: uv run --no-sync --locked --no-build alembic upgrade head
 
   security:
-    uses: Sagargupta16/shared-workflows/.github/workflows/security-scan.yml@main
+    uses: Samik123Mit/shared-workflows/.github/workflows/security-scan.yml@main
     permissions:
       contents: read
       security-events: write

@@ -22,7 +22,7 @@ import type { Transaction } from '@/types'
  * `_user_transaction_query`, which filters soft-deleted rows, so an aggregate
  * measured without it overstates several of these keys. Absolute row counts and
  * amounts stay out of tracked source (this repo is public); the measurements
- * live in the untracked study notes under `.claude/docs/studies/`.
+ * live in the untracked study notes under `private study notes/`.
  *
  * What matters for the assertions is which spellings exist and which do not:
  * the shipped defaults used "Refund & Cashbacks" (SINGULAR), "Deposits Return",

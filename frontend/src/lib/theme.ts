@@ -4,7 +4,7 @@
  *  - 'light' -> light ledger workspace
  *
  * New users default to their OS `prefers-color-scheme`; once they toggle,
- * the explicit choice persists in localStorage under `ledger-sync-theme`.
+ * the explicit choice persists in localStorage under `moneybuddy-theme`.
  *
  * The resolved theme is written to `data-theme` on <html>; index.css defines
  * `[data-theme='light']` token overrides. An inline script in index.html
@@ -16,7 +16,7 @@ import { refreshRawColors } from '@/constants/colors'
 
 export type ThemeMode = 'dark' | 'light'
 
-export const THEME_STORAGE_KEY = 'ledger-sync-theme'
+export const THEME_STORAGE_KEY = 'moneybuddy-theme'
 
 /** OS-level preference, used as the default for users with no stored choice. */
 export function osPreferredTheme(): ThemeMode {

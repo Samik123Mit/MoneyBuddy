@@ -34,11 +34,11 @@ from alembic.operations import Operations
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from ledger_sync.core._analytics_helpers import DEFAULT_ESSENTIAL_CATEGORIES
-from ledger_sync.core.analytics.base import _INCOME_LIST_DEFAULTS
-from ledger_sync.core.analytics.classification import ClassificationMixin
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import (
+from moneybuddy.core._analytics_helpers import DEFAULT_ESSENTIAL_CATEGORIES
+from moneybuddy.core.analytics.base import _INCOME_LIST_DEFAULTS
+from moneybuddy.core.analytics.classification import ClassificationMixin
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import (
     FYSummary,
     MonthlySummary,
     Transaction,
@@ -50,7 +50,7 @@ from ledger_sync.db.models import (
 _MIGRATION_PATH = (
     Path(__file__).resolve().parents[2]
     / "src"
-    / "ledger_sync"
+    / "moneybuddy"
     / "db"
     / "migrations"
     / "versions"

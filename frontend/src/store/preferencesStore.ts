@@ -344,7 +344,7 @@ const DEFAULT_USER_PREFS = {
   //    unclassified, and so `withIncomeClassificationDefaults`' group rule can
   //    tell a reset row from a user choice.
   // Absolute amounts stay out of tracked source (this repo is public); the
-  // measurements live in the untracked study notes under .claude/docs/studies/.
+  // measurements live in the untracked study notes under private study notes/.
   incomeClassification: {
     taxable: [
       'Employment Income::Salary',
@@ -468,7 +468,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       },
     }),
     {
-      name: 'ledger-sync-preferences',
+      name: 'moneybuddy-preferences',
       partialize: (state) => ({
         displayPreferences: state.displayPreferences,
         displayCurrency: state.displayCurrency,

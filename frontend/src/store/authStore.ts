@@ -100,7 +100,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'ledger-sync-auth',
+      name: 'moneybuddy-auth',
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

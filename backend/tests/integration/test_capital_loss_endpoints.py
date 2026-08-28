@@ -29,8 +29,8 @@ from decimal import Decimal
 
 import pytest
 
-from ledger_sync.core.analytics.engine import AnalyticsEngine
-from ledger_sync.db.models import Transaction, TransactionType, UserPreferences
+from moneybuddy.core.analytics.engine import AnalyticsEngine
+from moneybuddy.db.models import Transaction, TransactionType, UserPreferences
 
 LOSS_CATEGORY = "Investment Expenses"
 LOSS_SUBCATEGORY = "F&O Loss"

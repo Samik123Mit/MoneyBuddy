@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ledger_sync.api.rates import get_instrument_rates
+from moneybuddy.api.rates import get_instrument_rates
 
 
 class FakeUser:

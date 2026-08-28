@@ -58,7 +58,7 @@ const TOKENS: AuthTokens = {
 const USER: User = {
   id: 7,
   email: 'sagar@example.com',
-  full_name: 'Sagar Gupta',
+  full_name: 'Samiksha Mitra',
   is_active: true,
   is_verified: true,
   auth_provider: 'google',

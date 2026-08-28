@@ -2,7 +2,7 @@ import { apiClient } from './client'
 
 /**
  * Matches the JSON shape served by the backend at /api/rates/instruments.
- * Source of truth: backend/src/ledger_sync/config/instrument_rates.json.
+ * Source of truth: backend/src/moneybuddy/config/instrument_rates.json.
  */
 export interface InstrumentRates {
   updated_at: string

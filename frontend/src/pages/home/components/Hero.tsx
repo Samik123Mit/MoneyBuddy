@@ -2,8 +2,8 @@ import { motion } from 'motion/react'
 import { ArrowRight, Check, Eye, Target } from 'lucide-react'
 
 const HIGHLIGHTS = [
-  'Works with Money Manager Pro exports',
-  'Smart duplicate detection',
+  'Supports statement and export ingestion',
+  'Idempotent duplicate-safe processing',
   'Secure, private data storage',
   'India-focused tax calculations',
   'Light and dark themes',
@@ -27,14 +27,14 @@ export function Hero({ isAuthenticated, onGetStarted, onTryDemo }: Readonly<Hero
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           >
             <p className="mb-4 text-xs font-semibold uppercase text-muted-foreground">
-              Private personal finance workspace
+              Production-style financial data platform
             </p>
             <h1 className="max-w-4xl text-4xl font-semibold leading-[1.03] text-foreground sm:text-5xl lg:text-6xl">
-              Ledger Sync
+              MoneyBuddy
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground sm:text-xl">
-              Import Excel statements, understand cash flow, track investments, and plan Indian
-              taxes from one focused workspace.
+              Ingest transaction exports, normalize messy financial data, and work from one
+              reliable ledger for analytics, reconciliation, and planning.
             </p>
           </motion.div>
 

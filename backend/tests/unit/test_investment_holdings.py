@@ -11,8 +11,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from ledger_sync.core._analytics_helpers import aggregate_holdings_data
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.core._analytics_helpers import aggregate_holdings_data
+from moneybuddy.db.models import Transaction, TransactionType
 
 INVESTMENT_ACCOUNTS = {"EPF", "Stocks: Groww", "Mutual Funds: Groww"}
 

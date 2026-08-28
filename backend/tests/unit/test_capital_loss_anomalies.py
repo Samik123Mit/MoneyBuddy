@@ -36,9 +36,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from ledger_sync.core.analytics.engine import AnalyticsEngine
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import (
+from moneybuddy.core.analytics.engine import AnalyticsEngine
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import (
     Anomaly,
     Budget,
     Transaction,

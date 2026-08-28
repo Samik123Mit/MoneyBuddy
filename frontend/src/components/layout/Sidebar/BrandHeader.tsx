@@ -8,10 +8,10 @@ export default function BrandHeader() {
       </span>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold leading-4 text-foreground">
-          Ledger Sync
+          MoneyBuddy
         </p>
         <p className="truncate text-[10px] leading-4 text-text-tertiary">
-          Personal finance workspace
+          Financial data platform
         </p>
       </div>
     </div>

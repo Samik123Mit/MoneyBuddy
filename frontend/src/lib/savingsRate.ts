@@ -52,7 +52,7 @@
  * and the earlier version of this docstring was wrong to claim it did. It
  * asserted that `/api/calculations/totals` excludes losses "from `total_expenses`
  * and from `savings_rate`". It does not. `_totals_payload`
- * (`backend/src/ledger_sync/api/calculations.py:142-148`) is:
+ * (`backend/src/moneybuddy/api/calculations.py:142-148`) is:
  *
  *     net_savings  = total_income - total_expenses - capital_losses
  *     savings_rate = net_savings / total_income * 100

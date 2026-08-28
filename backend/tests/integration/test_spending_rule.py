@@ -17,11 +17,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from ledger_sync.api.deps import get_current_user
-from ledger_sync.api.main import app
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import Transaction, TransactionType, User, UserPreferences
-from ledger_sync.db.session import get_session
+from moneybuddy.api.deps import get_current_user
+from moneybuddy.api.main import app
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import Transaction, TransactionType, User, UserPreferences
+from moneybuddy.db.session import get_session
 
 
 @pytest.fixture
@@ -229,8 +229,8 @@ def test_generic_transfer_relabelled_to_instrument_name(rule_client):
     assert "Mutual Funds" in savings_cats
 
 
-def test_ledger_sync_template_transfer_pattern_relabelled(rule_client):
-    """The ledger-sync default Excel template stores TRANSFER rows as
+def test_moneybuddy_template_transfer_pattern_relabelled(rule_client):
+    """The moneybuddy default Excel template stores TRANSFER rows as
     ``category = "Transfer: <from> → <to>"``. That's NOT a generic single-word
     label -- it's the compound form. The prettifier must catch this pattern
     (colon-prefix) and relabel from the ``to_account`` field.

@@ -12,8 +12,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ledger_sync.core.sync_engine import SyncEngine
-from ledger_sync.db.models import Transaction, User
+from moneybuddy.core.sync_engine import SyncEngine
+from moneybuddy.db.models import Transaction, User
 
 
 def _row(**overrides: Any) -> dict[str, Any]:

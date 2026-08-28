@@ -40,7 +40,6 @@ import {
   generateDemoSpendingRule,
   generateDemoTransferFlows,
 } from '@/lib/demo/demoComputedReads'
-import { generateDemoAiUsage } from '@/lib/demo/demoAiUsage'
 import { generateDemoExportBlob } from '@/lib/demo/demoExport'
 import { generateDemoIncomeAnalysis } from '@/lib/demo/demoIncomeAnalysis'
 import type { AuthTokens, Transaction } from '@/types'
@@ -63,11 +62,6 @@ type DemoResolver = (
  * params that miss the seeded cache keys, so the adapter answers everything.
  */
 const DEMO_ROUTES: ReadonlyArray<readonly [string, DemoResolver]> = [
-  ['/api/ai/tools', () => ({ tools: [] })],
-  // The rollup panels read `usage.today.total_tokens` and
-  // `limits.app_daily_messages` directly, so the catch-all's `[]` rendered
-  // "NaN / 10 left" and threw in the BYOK panel. Full shape or nothing.
-  ['/api/ai/usage', () => generateDemoAiUsage()],
   // Calculations
   ['/calculations/totals', (txs, params) => generateDemoTotals(txs, params)],
   ['/calculations/monthly-aggregation', (txs, params) => generateDemoMonthlyAggregation(txs, params)],

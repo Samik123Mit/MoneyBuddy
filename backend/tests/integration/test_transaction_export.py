@@ -26,7 +26,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.db.models import Transaction, TransactionType
 
 EXPECTED_HEADER = [
     "id",

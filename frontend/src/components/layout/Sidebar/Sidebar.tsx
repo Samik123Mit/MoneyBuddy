@@ -33,7 +33,7 @@ import SidebarSection from './SidebarSection'
 import ThemeToggle from './ThemeToggle'
 
 function getInitials(name?: string | null, email?: string): string {
-  const source = name?.trim() || email?.split('@')[0] || 'LS'
+  const source = name?.trim() || email?.split('@')[0] || 'MB'
   return source
     .split(/[\s._-]+/)
     .filter(Boolean)
@@ -290,7 +290,7 @@ export default function Sidebar() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-medium text-foreground">
-                  {displayUser?.full_name || 'Ledger Sync user'}
+                  {displayUser?.full_name || 'MoneyBuddy user'}
                 </span>
                 <span className="block truncate text-[10px] text-text-tertiary">
                   {displayUser?.email || 'Personal workspace'}

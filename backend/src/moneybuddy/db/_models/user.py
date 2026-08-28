@@ -1,0 +1,506 @@
+"""User, UserPreferences, and AuditLog models."""
+
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from moneybuddy.db._models._constants import CASCADE_ALL_DELETE_ORPHAN, USER_FK
+from moneybuddy.db.base import Base
+
+if TYPE_CHECKING:
+    from moneybuddy.db._models.provider_usage import ProviderUsageLog
+    from moneybuddy.db._models.organization import (
+        CategorizationRule,
+        SavedFilterView,
+        TransactionTag,
+    )
+    from moneybuddy.db._models.planning import (
+        Anomaly,
+        Budget,
+        FinancialGoal,
+    )
+    from moneybuddy.db._models.transactions import ImportLog, Transaction
+
+
+class User(Base):
+    """User model for authentication.
+
+    Supports both email/password and OAuth (Google, GitHub) login.
+    OAuth users have auth_provider and auth_provider_id set, and may
+    have an empty hashed_password (they authenticate via the provider).
+    """
+
+    __tablename__ = "users"
+
+    # A provider identity (provider, provider_id) must map to at most one user.
+    # NULLs (legacy/email accounts with no provider) are distinct, so they
+    # never collide under this constraint.
+    __table_args__ = (
+        UniqueConstraint(
+            "auth_provider", "auth_provider_id", name="uq_users_auth_provider_identity"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # OAuth fields — null for email/password users
+    auth_provider: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    auth_provider_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Session revocation counter. Baked into every JWT payload as `tv`.
+    # Bumped on logout / account reset / delete to invalidate all outstanding
+    # tokens for this user in a single write, without a per-token blocklist.
+    token_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+    last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Relationships — cascade ensures child records are cleaned up when a user is deleted.
+    # lazy="select" avoids loading all children on every user query.
+    transactions: Mapped["list[Transaction]"] = relationship(
+        "Transaction",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    preferences: Mapped["UserPreferences | None"] = relationship(
+        "UserPreferences",
+        back_populates="user",
+        uselist=False,
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    import_logs: Mapped["list[ImportLog]"] = relationship(
+        "ImportLog",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    provider_usage_logs: Mapped["list[ProviderUsageLog]"] = relationship(
+        "ProviderUsageLog",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    budgets: Mapped["list[Budget]"] = relationship(
+        "Budget",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    financial_goals: Mapped["list[FinancialGoal]"] = relationship(
+        "FinancialGoal",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    anomalies: Mapped["list[Anomaly]"] = relationship(
+        "Anomaly",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    audit_logs: Mapped["list[AuditLog]"] = relationship(
+        "AuditLog",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    categorization_rules: Mapped["list[CategorizationRule]"] = relationship(
+        "CategorizationRule",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    transaction_tags: Mapped["list[TransactionTag]"] = relationship(
+        "TransactionTag",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+    saved_filter_views: Mapped["list[SavedFilterView]"] = relationship(
+        "SavedFilterView",
+        back_populates="user",
+        lazy="select",
+        cascade=CASCADE_ALL_DELETE_ORPHAN,
+        passive_deletes=True,
+    )
+
+    def __repr__(self) -> str:
+        """Return string representation."""
+        return f"<User(id={self.id}, email={self.email})>"
+
+
+# Default JSON values for UserPreferences: empty JSON documents meaning
+# "the user has not configured this yet".
+#
+# These are STRINGS, and a non-empty string is truthy in Python, so a reader
+# must never gate on the raw column (``if prefs.essential_categories:`` passes
+# for "[]" and yields an empty parse). Decide "configured?" from the PARSED
+# value instead -- see ``AnalyticsEngineBase._configured_json``, which treats an
+# empty parsed collection as unset for the fields where empty has no meaning
+# (essential categories, income classification) and honours it for the fields
+# where it does (excluded accounts, investment mappings).
+_DEFAULT_ESSENTIAL_CATEGORIES = "[]"
+_DEFAULT_INVESTMENT_MAPPINGS = "{}"
+
+
+class UserPreferences(Base):
+    """User preferences for customizing analytics and display.
+
+    Stores all user-configurable settings per user.
+    JSON fields allow flexible storage of lists/dicts without schema changes.
+    """
+
+    __tablename__ = "user_preferences"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # User foreign key - links preferences to owner
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey(USER_FK, ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    # Relationship back to user
+    user: Mapped["User"] = relationship("User", back_populates="preferences")
+
+    # ===== 1. Fiscal Year Configuration =====
+    fiscal_year_start_month: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=4,  # April (India FY)
+    )
+
+    # ===== 2. Essential vs Discretionary Categories =====
+    # JSON array of category names
+    essential_categories: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default=_DEFAULT_ESSENTIAL_CATEGORIES,
+    )
+    # Categories not in essential are considered discretionary
+
+    # ===== 3. Investment Account Mappings =====
+    # JSON object: account_pattern -> investment_type
+    # Types: stocks, mutual_funds, fixed_deposits, ppf_epf, gold, crypto, other
+    investment_account_mappings: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default=_DEFAULT_INVESTMENT_MAPPINGS,
+    )
+
+    # ===== 4. Income Classification by Tax Treatment =====
+    # Classify income subcategories by their tax treatment
+    # Stored as "Category::Subcategory" format for granular control
+    taxable_income_categories: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        # Empty by default - user configures based on their data
+        default="[]",
+    )
+    investment_returns_categories: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        # Empty by default - user configures based on their data
+        default="[]",
+    )
+    non_taxable_income_categories: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        # Empty by default - user configures based on their data
+        default="[]",
+    )
+    other_income_categories: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        # Empty by default - user configures based on their data
+        default="[]",
+    )
+
+    # ===== 4b. Realised Capital Losses booked as EXPENSE =====
+    # JSON array of "Category::Subcategory" keys the user has declared to be
+    # realised investment losses rather than consumption. A cashbook has to
+    # record a trading loss as an EXPENSE row for the cash column to balance,
+    # but a loss bought no goods or services, so summing it as spending inflates
+    # expense totals, the essential/discretionary split, the 50/30/20 Wants
+    # share and the anomaly baseline at once.
+    #
+    # Empty by default AND intentionally NOT defaulted group-wide the way the
+    # four income lists are: only the user can say which of their own rows are
+    # losses, and guessing would silently rewrite their historical numbers. Until
+    # this is configured every aggregate behaves exactly as before; the
+    # data-health signal surfaces likely rows and asks the user to classify.
+    capital_loss_categories: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default="[]",
+        server_default="[]",
+    )
+
+    # ===== 5. Budget Defaults =====
+    default_budget_alert_threshold: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        default=80.0,  # Alert at 80% usage
+    )
+    auto_create_budgets: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    budget_rollover_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # ===== 6. Display/Format Preferences =====
+    number_format: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="indian",  # "indian" or "international"
+    )  # indian: 1,00,000 | international: 100,000
+    currency_symbol: Mapped[str] = mapped_column(String(10), nullable=False, default="₹")
+    currency_symbol_position: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="before",  # "before" or "after"
+    )
+    default_time_range: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="all_time",
+    )
+    display_currency: Mapped[str] = mapped_column(
+        String(3),
+        nullable=False,
+        default="INR",
+    )
+
+    # ===== 7. Anomaly Detection Settings =====
+    anomaly_expense_threshold: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        default=2.0,  # Flag if expense > 2x category average
+    )
+    anomaly_types_enabled: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default='["high_expense", "unusual_category", "large_transfer", "budget_exceeded"]',
+    )
+    auto_dismiss_recurring_anomalies: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    # ===== 8. Recurring Transaction Settings =====
+    recurring_min_confidence: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        default=50.0,  # Min confidence % to show
+    )
+    recurring_auto_confirm_occurrences: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=6,  # Auto-confirm after 6 occurrences
+    )
+
+    # ===== 9. Spending Rule Targets (Needs/Wants/Savings) =====
+    needs_target_percent: Mapped[float] = mapped_column(Float, nullable=False, default=50.0)
+    wants_target_percent: Mapped[float] = mapped_column(Float, nullable=False, default=30.0)
+    savings_target_percent: Mapped[float] = mapped_column(Float, nullable=False, default=20.0)
+
+    # ===== 10. Credit Card Limits =====
+    # JSON object: { "card_name": limit_amount }
+    credit_card_limits: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+
+    # ===== 11. Earning Start Date =====
+    earning_start_date: Mapped[str | None] = mapped_column(String(10), nullable=True, default=None)
+    use_earning_start_date: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # ===== 12. Fixed/Mandatory Monthly Expenses =====
+    # JSON array of "Category::Subcategory" that are fixed every month
+    # e.g. ["Housing::Rent", "Utilities::Internet", "Transportation::EMI"]
+    fixed_expense_categories: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+
+    # ===== 13. Savings & Investment Targets =====
+    savings_goal_percent: Mapped[float] = mapped_column(Float, nullable=False, default=20.0)
+    monthly_investment_target: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    # ===== 14. Payday Configuration =====
+    payday: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # ===== 15. Tax Regime Preference =====
+    preferred_tax_regime: Mapped[str] = mapped_column(String(10), nullable=False, default="new")
+
+    # ===== 16. Excluded Accounts =====
+    # JSON array of account names to exclude from analytics
+    excluded_accounts: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+
+    # ===== 17. Notification Preferences =====
+    notify_budget_alerts: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_anomalies: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_upcoming_bills: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_days_ahead: Mapped[int] = mapped_column(Integer, nullable=False, default=7)
+
+    # ===== 18. Tax display =====
+    # Show the forward per-month TDS deduction schedule on the Tax Planning
+    # page. Off by default; opt-in since it only helps salaried users who have
+    # a salary structure configured.
+    show_tds_schedule: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # ===== 19. EPF withdrawal taxability =====
+    # How EPF inflows (withdrawals / contribution credits) are treated for tax.
+    # Indian rule: an EPF withdrawal after 5 years of continuous service is fully
+    # EXEMPT u/s 10(12); before 5 years it is taxable. We can't infer tenure from
+    # a bank row, so default to exempt (the common case) and let the user opt in
+    # to taxing it. ``epf_taxable_percent`` (0-100) is the fraction counted as
+    # taxable when the toggle is on -- defaults to 100 (fully taxable). The old
+    # behaviour was a hardcoded 50%; this makes it an explicit, user-owned choice.
+    epf_withdrawal_taxable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    epf_taxable_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
+
+    # ===== 20. Salary TDS treatment =====
+    # Whether the salary amounts recorded in the ledger are NET of TDS (what hit
+    # the bank) or GROSS (pre-tax CTC). True (default) = net: the tax engine backs
+    # out the implied gross from the received amount and reports the TDS that was
+    # already deducted. False = the recorded amount IS the taxable gross, so tax is
+    # computed directly on it (no gross-up). This is a per-user reporting choice;
+    # bank-statement imports are typically net, so True preserves prior behaviour.
+    salary_is_net_of_tds: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    # ── Salary & Tax Projections ──────────────────────────────────────────
+    salary_structure: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    rsu_grants: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    growth_assumptions: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+
+    # ── Legacy provider configuration ────────────────────────────────────
+    # These columns remain for migration compatibility with previously
+    # deployed databases. They are no longer part of the product surface.
+    provider_mode: Mapped[str] = mapped_column(
+        "ai_mode",
+        String(16),
+        nullable=False,
+        default="shared",
+        server_default="shared",
+    )
+    provider_name: Mapped[str | None] = mapped_column(
+        "ai_provider", String(20), nullable=True, default=None
+    )
+    provider_model: Mapped[str | None] = mapped_column(
+        "ai_model", String(100), nullable=True, default=None
+    )
+    provider_api_key_encrypted: Mapped[str | None] = mapped_column(
+        "ai_api_key_encrypted",
+        Text, nullable=True, default=None
+    )
+    provider_daily_token_limit: Mapped[int | None] = mapped_column(
+        "ai_daily_token_limit",
+        Integer, nullable=True, default=None
+    )
+    provider_monthly_token_limit: Mapped[int | None] = mapped_column(
+        "ai_monthly_token_limit",
+        Integer, nullable=True, default=None
+    )
+
+    # Metadata
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class AuditLog(Base):
+    """Audit log for tracking all changes and operations."""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # User foreign key - tracks who performed the action
+    user_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey(USER_FK, ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
+    # Relationship back to user
+    user: Mapped["User | None"] = relationship("User", back_populates="audit_logs")
+
+    # Operation details
+    operation: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        index=True,
+    )  # upload, reconcile, edit, delete
+    entity_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )  # transaction, budget, goal, etc.
+    entity_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # Change details
+    action: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+    )  # create, update, delete, soft_delete
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON of old state
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON of new state
+    changes_summary: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )  # Human-readable summary
+
+    # Context
+    source_file: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Metadata
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        index=True,
+    )
+
+    __table_args__ = (
+        Index("ix_audit_operation_entity", "operation", "entity_type"),
+        Index("ix_audit_created", "created_at"),
+        Index("ix_audit_user", "user_id"),
+    )

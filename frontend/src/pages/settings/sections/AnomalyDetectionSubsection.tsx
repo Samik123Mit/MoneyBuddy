@@ -8,7 +8,7 @@
  * Two controls were removed rather than completed:
  *
  *  - "Enabled Types" (an `anomaly_types_enabled` checkbox grid). Nothing under
- *    `backend/src/ledger_sync/core/` reads that field -- only
+ *    `backend/src/moneybuddy/core/` reads that field -- only
  *    `api/preferences.py` and `api/preferences_helpers.py`, which persist it and
  *    echo it back -- so `_detect_anomalies()` ran every detector regardless of
  *    what was ticked. It also listed four of the enum's seven members, so the

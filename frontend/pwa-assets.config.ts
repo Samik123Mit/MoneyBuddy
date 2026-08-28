@@ -1,7 +1,7 @@
 import { defineConfig, minimal2023Preset } from '@vite-pwa/assets-generator/config'
 
 /**
- * PWA icons for Ledger Sync.
+ * PWA icons for MoneyBuddy.
  *
  * The minimal-2023 preset renders the apple-touch icon with ~12% inner
  * padding and a white background. On iOS home screens that reads as a

@@ -18,8 +18,8 @@ from decimal import Decimal
 
 import pytest
 
-from ledger_sync.api import transactions as transactions_api
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.api import transactions as transactions_api
+from moneybuddy.db.models import Transaction, TransactionType
 
 ALL_URL = "/api/transactions/all"
 

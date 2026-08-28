@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
-from ledger_sync.db.models import ImportLog, MonthlySummary, Transaction, TransactionType
+from moneybuddy.db.models import ImportLog, MonthlySummary, Transaction, TransactionType
 
 HEALTH_URL = "/api/analytics/v2/data-health"
 
@@ -288,7 +288,7 @@ def test_today_is_resolved_in_ist_not_utc(two_user_client) -> None:
     )
     session.commit()
 
-    with patch("ledger_sync.core.ledger_clock.ledger_now") as mock_now:
+    with patch("moneybuddy.core.ledger_clock.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 7, 10, 1, 30)  # noqa: DTZ001 -- naive IST by contract
         body = client.get(HEALTH_URL).json()
 

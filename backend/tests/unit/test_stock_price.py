@@ -16,8 +16,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ledger_sync.api.deps import get_current_user
-from ledger_sync.api.stock_price import router as stock_price_router
+from moneybuddy.api.deps import get_current_user
+from moneybuddy.api.stock_price import router as stock_price_router
 
 
 def _ts(day: str) -> int:

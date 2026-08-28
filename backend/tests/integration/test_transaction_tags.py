@@ -16,7 +16,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from ledger_sync.db.models import Transaction, TransactionType, UserPreferences
+from moneybuddy.db.models import Transaction, TransactionType, UserPreferences
 
 FACET_KEYS = {
     "categories",

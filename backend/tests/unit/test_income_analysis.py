@@ -12,8 +12,8 @@ from decimal import Decimal
 
 import pytest
 
-from ledger_sync.api.calculations_helpers import _compute_income_analysis
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.api.calculations_helpers import _compute_income_analysis
+from moneybuddy.db.models import Transaction, TransactionType
 
 
 def _inc(

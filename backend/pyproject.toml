@@ -1,8 +1,8 @@
 [project]
-name = "ledger-sync"
+name = "moneybuddy"
 version = "2.24.0"
-description = "Personal finance dashboard backend -- Excel import, financial analytics, multi-currency exchange rates"
-authors = [{ name = "Sagar Gupta" }]
+description = "Financial data platform backend -- ingestion, reconciliation, analytics, and authenticated APIs"
+authors = [{ name = "Samiksha Mitra" }]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ledger-sync = "ledger_sync.cli.main:app"
+moneybuddy = "moneybuddy.cli.main:app"
 
 [dependency-groups]
 dev = [
@@ -149,24 +149,24 @@ select = [
 # token_type="access" / "refresh" are JWT type discriminators, and the OAuth
 # provider token endpoints are public Google/GitHub URLs -- not credentials.
 # Audited 2026-07-26: no real secret is hardcoded in src/.
-"src/ledger_sync/api/deps.py" = ["S106"]
-"src/ledger_sync/api/oauth.py" = ["S105"]
-"src/ledger_sync/core/auth/tokens.py" = ["S107"]
-"src/ledger_sync/schemas/auth.py" = ["S105"]
-"src/ledger_sync/services/auth_service.py" = ["S106"]
+"src/moneybuddy/api/deps.py" = ["S106"]
+"src/moneybuddy/api/oauth.py" = ["S105"]
+"src/moneybuddy/core/auth/tokens.py" = ["S107"]
+"src/moneybuddy/schemas/auth.py" = ["S105"]
+"src/moneybuddy/services/auth_service.py" = ["S106"]
 # typer.Argument()/Option() in parameter defaults IS the typer API. B008 cannot
 # be satisfied here without abandoning the framework's declarative style.
-"src/ledger_sync/cli/**/*.py" = ["B008"]
+"src/moneybuddy/cli/**/*.py" = ["B008"]
 # RUF012: RecurrenceFrequency map is a module-level constant lookup that is
 # never mutated; annotating it ClassVar is a live-code change owned by another
 # agent's in-flight edit to this file, so it is deliberately deferred.
-"src/ledger_sync/core/analytics/recurring.py" = ["RUF012"]
+"src/moneybuddy/core/analytics/recurring.py" = ["RUF012"]
 # DTZ001: normalizer.normalize_date() intentionally produces naive wall-clock
 # datetimes to match the naive DateTime columns. See the report accompanying
 # this change -- the UTC-vs-IST anchoring defect lives in the *callers* that
 # compare these to datetime.now(UTC), not in the parser. File is owned by
 # another agent's in-flight edit, so the ignore is scoped rather than inline.
-"src/ledger_sync/ingest/normalizer.py" = ["DTZ001"]
+"src/moneybuddy/ingest/normalizer.py" = ["DTZ001"]
 # INP001: Vercel resolves the serverless entrypoint by file path (api/index.py,
 # routed from vercel.json). Adding api/__init__.py would make it a package and
 # is not what the platform imports, so the implicit namespace is required.
@@ -197,7 +197,7 @@ module = "boto3.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "ledger_sync.db.migrations.*"
+module = "moneybuddy.db.migrations.*"
 ignore_errors = true
 
 [tool.pytest.ini_options]
@@ -212,4 +212,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ledger_sync"]
+packages = ["src/moneybuddy"]

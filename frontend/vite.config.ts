@@ -7,23 +7,23 @@ import path from 'node:path'
 const isGitHubPages = process.env.GITHUB_PAGES === 'true'
 
 export default defineConfig({
-  // GitHub Pages / custom domain serves from /ledger-sync/ subpath; local dev uses root
-  base: isGitHubPages ? '/ledger-sync/' : '/',
+  // GitHub Pages project sites serve from /MoneyBuddy/; local dev uses root.
+  base: isGitHubPages ? '/MoneyBuddy/' : '/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Ledger Sync',
-        short_name: 'Ledger',
+        name: 'MoneyBuddy',
+        short_name: 'MoneyBuddy',
         description:
-          'Self-hosted personal finance dashboard -- analytics, budgeting, and tax planning.',
+          'Production-style financial data platform for transaction ingestion, reconciliation, and analytics.',
         theme_color: '#eaf0f7',
         background_color: '#eaf0f7',
         display: 'standalone',
         orientation: 'portrait',
-        // start_url is relative to Vite's `base`, so it resolves to /ledger-sync/ on GH Pages.
+        // start_url is relative to Vite's `base`, so it resolves to /MoneyBuddy/ on GitHub Pages.
         start_url: '.',
         scope: '.',
         icons: [

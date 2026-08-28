@@ -12,14 +12,14 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from ledger_sync.api.deps import get_current_user
-from ledger_sync.api.exchange_rates import (
+from moneybuddy.api.deps import get_current_user
+from moneybuddy.api.exchange_rates import (
     _FALLBACK_RATES,
     _fetch_rates,
     _rate_cache,
     get_exchange_rates,
 )
-from ledger_sync.api.main import app
+from moneybuddy.api.main import app
 
 
 @pytest.fixture(autouse=True)
@@ -40,7 +40,7 @@ def test_fetch_and_cache_rates():
     # `_fetch_rates` returns (rates, priced_on): the second element is the date
     # frankfurter actually priced, which matters only for historical lookups.
     with patch(
-        "ledger_sync.api.exchange_rates._fetch_rates",
+        "moneybuddy.api.exchange_rates._fetch_rates",
         new_callable=AsyncMock,
         return_value=(mock_rates, ""),
     ):
@@ -59,7 +59,7 @@ def test_returns_cached_rates():
     _rate_cache["fetched_at"] = time.time()  # fresh
 
     with patch(
-        "ledger_sync.api.exchange_rates._fetch_rates",
+        "moneybuddy.api.exchange_rates._fetch_rates",
         new_callable=AsyncMock,
     ) as mock_fetch:
         result = asyncio.run(get_exchange_rates(_current_user=FakeUser(), base="INR"))
@@ -74,7 +74,7 @@ def test_stale_cache_on_api_failure():
     _rate_cache["fetched_at"] = time.time() - 100000  # stale
 
     with patch(
-        "ledger_sync.api.exchange_rates._fetch_rates",
+        "moneybuddy.api.exchange_rates._fetch_rates",
         new_callable=AsyncMock,
         side_effect=httpx.HTTPError("API down"),
     ):
@@ -86,7 +86,7 @@ def test_stale_cache_on_api_failure():
 def test_fallback_rates_when_no_cache():
     """Should return hardcoded fallback when API fails and no cache exists."""
     with patch(
-        "ledger_sync.api.exchange_rates._fetch_rates",
+        "moneybuddy.api.exchange_rates._fetch_rates",
         new_callable=AsyncMock,
         side_effect=httpx.HTTPError("API down"),
     ):
@@ -107,7 +107,7 @@ class TestHistoricalRates:
 
     def test_historical_date_returns_that_days_rate(self):
         with patch(
-            "ledger_sync.api.exchange_rates._fetch_rates",
+            "moneybuddy.api.exchange_rates._fetch_rates",
             new_callable=AsyncMock,
             return_value=({"INR": 87.46}, "2025-08-15"),
         ):
@@ -122,7 +122,7 @@ class TestHistoricalRates:
     def test_weekend_reports_the_date_actually_priced(self):
         """Frankfurter prices the prior publication day; say so rather than imply the ask."""
         with patch(
-            "ledger_sync.api.exchange_rates._fetch_rates",
+            "moneybuddy.api.exchange_rates._fetch_rates",
             new_callable=AsyncMock,
             return_value=({"INR": 87.46}, "2025-08-15"),
         ):
@@ -139,7 +139,7 @@ class TestHistoricalRates:
         _rate_cache["fetched_at"] = time.time()
 
         with patch(
-            "ledger_sync.api.exchange_rates._fetch_rates",
+            "moneybuddy.api.exchange_rates._fetch_rates",
             new_callable=AsyncMock,
             return_value=({"INR": 87.46}, "2025-08-15"),
         ) as fetch:
@@ -154,7 +154,7 @@ class TestHistoricalRates:
         call = get_exchange_rates(_current_user=FakeUser(), base="USD", on_date=date(2025, 8, 15))
         with (
             patch(
-                "ledger_sync.api.exchange_rates._fetch_rates",
+                "moneybuddy.api.exchange_rates._fetch_rates",
                 new_callable=AsyncMock,
                 side_effect=httpx.HTTPError("API down"),
             ),
@@ -192,7 +192,7 @@ class TestUpstreamRetry:
 
         with (
             patch("httpx.AsyncClient.get", new=flaky),
-            patch("ledger_sync.api.exchange_rates.anyio.sleep", new_callable=AsyncMock),
+            patch("moneybuddy.api.exchange_rates.anyio.sleep", new_callable=AsyncMock),
         ):
             rates, priced_on = asyncio.run(_fetch_rates("USD", date(2025, 8, 15)))
         assert calls["n"] == 2
@@ -224,7 +224,7 @@ class TestBaseValidation:
         app.dependency_overrides[get_current_user] = FakeUser
         try:
             with patch(
-                "ledger_sync.api.exchange_rates._fetch_rates",
+                "moneybuddy.api.exchange_rates._fetch_rates",
                 new_callable=AsyncMock,
                 return_value=({"INR": 1.0}, ""),
             ):

@@ -68,7 +68,7 @@ export interface KPIData {
 export const analyticsService = {
   /**
    * `time_range`, not a date window: `get_kpis`
-   * (`backend/src/ledger_sync/api/analytics.py`) declares `time_range` and
+   * (`backend/src/moneybuddy/api/analytics.py`) declares `time_range` and
    * nothing else. This used to take `{ start_date, end_date }`, which FastAPI
    * dropped on the floor -- so a date-filtered KPI request silently answered
    * with all-time figures. Narrowing the type here is the frontend half; giving
@@ -82,7 +82,7 @@ export const analyticsService = {
   /**
    * Newest-first ordering comes from the ENDPOINT, not from a param:
    * `get_transactions` hardcodes `order_by(Transaction.date.desc())` at
-   * `backend/src/ledger_sync/api/transactions.py:359` and declares only
+   * `backend/src/moneybuddy/api/transactions.py:359` and declares only
    * `start_date` / `end_date` / `limit` / `offset` (lines 332-335).
    *
    * `sort` / `sort_order` were sent here for exactly that reason and read like a

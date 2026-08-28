@@ -20,7 +20,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from ledger_sync.db.models import Transaction, TransactionType, UserPreferences
+from moneybuddy.db.models import Transaction, TransactionType, UserPreferences
 
 URL = "/api/analytics/insights/generated"
 RUPEE = "₹"

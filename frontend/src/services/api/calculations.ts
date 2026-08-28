@@ -53,7 +53,7 @@ export interface CategoryBreakdown {
  * `GET /api/calculations/account-balances`.
  *
  * The five summary numbers live NESTED under `statistics` on the wire -- see
- * `_compute_account_statistics` in `backend/src/ledger_sync/api/calculations_helpers.py`,
+ * `_compute_account_statistics` in `backend/src/moneybuddy/api/calculations_helpers.py`,
  * which returns `{"accounts": ..., "statistics": {...}}`. This alias existed here
  * as a FLAT interface, so `data.total_balance` type-checked and resolved to
  * `undefined` at runtime. Aliasing the response type keeps one definition.

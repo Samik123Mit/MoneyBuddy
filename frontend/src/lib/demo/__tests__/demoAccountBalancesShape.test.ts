@@ -2,7 +2,7 @@
  * Pins the demo `/api/calculations/account-balances` payload to the shape the
  * real endpoint serves.
  *
- * `_compute_account_statistics` in `backend/src/ledger_sync/api/calculations_helpers.py`
+ * `_compute_account_statistics` in `backend/src/moneybuddy/api/calculations_helpers.py`
  * returns the five summary numbers NESTED under `statistics`. The frontend
  * response type declared them FLAT, and the demo builder was written against
  * that flat type, so demo mode answered a shape production never sends. Nothing

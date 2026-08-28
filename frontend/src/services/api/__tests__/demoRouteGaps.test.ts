@@ -8,12 +8,10 @@ import { describe, expect, it, vi } from 'vitest'
  *
  *  1. `/calculations/income-analysis` had no route, so Income Analysis read the
  *     `[]` catch-all and rendered zeros end to end.
- *  2. `/api/ai/usage` had no route, so the app-mode panel printed the literal
- *     text "NaN / 10 left" and the BYOK token panel threw on `usage.today`.
- *  3. `/calculations/category-monthly-history` tested `Array.isArray(months)`,
+ *  2. `/calculations/category-monthly-history` tested `Array.isArray(months)`,
  *     but the caller sends `months.join(',')` -- a string -- so every demo
  *     sparkline and "/mo avg" figure was empty.
- *  4. `/transactions/export` had no route, so `exportToCSV()` resolved an array,
+ *  3. `/transactions/export` had no route, so `exportToCSV()` resolved an array,
  *     `URL.createObjectURL` threw, and the user got "Export failed".
  *
  * The resolvers are typed `unknown`, so none of this was visible to tsc.
@@ -24,7 +22,6 @@ vi.mock('@/store/demoStore', () => ({ isDemoMode: () => true }))
 const { ROLLING_AVG_MONTHS } = await import('@/lib/chartUtils')
 const { getDemoTransactions } = await import('@/lib/demo/seedDemoCache')
 const { DEMO_EXPORT_COLUMNS } = await import('@/lib/demo/demoExport')
-const { aiUsageService } = await import('../aiUsage')
 const { apiClient } = await import('../client')
 
 /** Drive a GET through the real demo interceptor and hand back the payload. */
@@ -115,50 +112,6 @@ describe('demo income-analysis route', () => {
     expect(classified.cashbacks_total).toBeLessThanOrEqual(
       classified.category_breakdown['Refund & Cashbacks'],
     )
-  })
-})
-
-describe('demo ai/usage route', () => {
-  it('serves the today / MTD / all-time rollups plus limits', async () => {
-    const usage = (await demoGet('/api/ai/usage')) as Record<string, unknown>
-
-    expect(Array.isArray(usage)).toBe(false)
-    expect(usage.mode).toBe('app_bedrock')
-    for (const key of ['today', 'month_to_date', 'all_time']) {
-      const rollup = usage[key] as Record<string, number>
-      expect(rollup, `${key} rollup must be an object`).toBeTypeOf('object')
-      for (const field of ['input_tokens', 'output_tokens', 'total_tokens', 'cost_usd', 'call_count'])
-        expect(typeof rollup[field], `${key}.${field}`).toBe('number')
-      expect(rollup.total_tokens).toBe(rollup.input_tokens + rollup.output_tokens)
-    }
-    for (const stamp of ['as_of', 'day_start', 'month_start', 'next_reset_utc']) {
-      expect(Number.isNaN(Date.parse(usage[stamp] as string)), `${stamp} must parse`).toBe(false)
-    }
-  })
-
-  it('never lets the app-mode badge compute NaN', async () => {
-    // Through the SERVICE, not the raw route: `aiUsageService.get()` back-fills
-    // `limits` from its defaults, so a missing route still yields a readable
-    // `limits.app_daily_messages` while every sibling field stays undefined.
-    // That partial payload is precisely what rendered "NaN / 10 left".
-    const usage = await aiUsageService.get()
-
-    // This is the exact arithmetic in ChatPanel's UsageBadge / AppMessageBadge.
-    // `Math.max(cap - undefined, 0)` is NaN -- Math.max does not clamp it --
-    // which is how the literal string "NaN / 10 left" reached the screen.
-    const remaining = Math.max(usage.limits.app_daily_messages - usage.messages_today, 0)
-    expect(Number.isFinite(remaining)).toBe(true)
-    expect(remaining).toBeGreaterThanOrEqual(0)
-    expect(usage.limits.app_daily_messages).toBeGreaterThan(0)
-    // BYOK caps read as "unset", not missing -- the panel branches on `null`.
-    expect(usage.limits.daily).toBeNull()
-    expect(usage.limits.monthly).toBeNull()
-    // TokenLimitsPanel reads `usage.today.total_tokens` and
-    // `usage.all_time.cost_usd` with no optional chaining, so a missing rollup
-    // is a thrown render, not a bad number.
-    expect(typeof usage.today.total_tokens).toBe('number')
-    expect(typeof usage.month_to_date.total_tokens).toBe('number')
-    expect(typeof usage.all_time.cost_usd).toBe('number')
   })
 })
 

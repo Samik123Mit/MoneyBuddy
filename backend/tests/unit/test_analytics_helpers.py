@@ -1,4 +1,4 @@
-from ledger_sync.core._analytics_helpers import infer_expected_day_of_month
+from moneybuddy.core._analytics_helpers import infer_expected_day_of_month
 
 
 def test_infer_returns_none_for_empty():

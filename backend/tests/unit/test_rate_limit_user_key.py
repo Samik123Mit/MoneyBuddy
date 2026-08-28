@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from ledger_sync.api.rate_limit import _user_key_func
-from ledger_sync.core.auth.tokens import create_tokens
+from moneybuddy.api.rate_limit import _user_key_func
+from moneybuddy.core.auth.tokens import create_tokens
 
 # Synthetic test IPs -- never leave the test suite. Documented for reviewers so
 # Sonar's S1313 hardcoded-IP checks understand these aren't leaked prod IPs.

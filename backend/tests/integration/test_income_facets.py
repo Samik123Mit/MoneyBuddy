@@ -19,15 +19,15 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from ledger_sync.api.calculations import get_income_facets
-from ledger_sync.db.models import Transaction, TransactionType, UserPreferences
+from moneybuddy.api.calculations import get_income_facets
+from moneybuddy.db.models import Transaction, TransactionType, UserPreferences
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sqlalchemy.orm import Session
 
-    from ledger_sync.db.models import User
+    from moneybuddy.db.models import User
 
 
 def _add(

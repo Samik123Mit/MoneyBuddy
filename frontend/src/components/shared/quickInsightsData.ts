@@ -46,7 +46,7 @@ const TITLE_TO_WIDGET_KEY: Record<string, string> = {
 
 export function getVisibleWidgetKeys(): Set<string> | null {
   try {
-    const raw = localStorage.getItem('ledger-sync-visible-widgets')
+    const raw = localStorage.getItem('moneybuddy-visible-widgets')
     if (raw) {
       // JSON.parse is typed `any`; hold it at `unknown` so the `any` stops
       // flowing, then assert once. Deliberately NOT an Array.isArray guard: a

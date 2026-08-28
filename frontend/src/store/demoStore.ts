@@ -15,7 +15,7 @@ export const useDemoStore = create<DemoState>()(
       exitDemo: () => set({ isDemoMode: false }),
     }),
     {
-      name: 'ledger-sync-demo',
+      name: 'moneybuddy-demo',
       storage: createJSONStorage(() => sessionStorage),
     },
   ),

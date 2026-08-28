@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from ledger_sync.api.analytics_v2_impl.recurring import _compute_next_expected
+from moneybuddy.api.analytics_v2_impl.recurring import _compute_next_expected
 
 
 def _next(last: datetime, freq: str, day: int | None) -> datetime:

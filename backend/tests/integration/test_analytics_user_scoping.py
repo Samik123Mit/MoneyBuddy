@@ -15,9 +15,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from ledger_sync.core.analytics_engine import AnalyticsEngine
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import Transaction, TransactionType, User
+from moneybuddy.core.analytics_engine import AnalyticsEngine
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import Transaction, TransactionType, User
 
 # Fake bcrypt hash for test fixtures -- not a real credential.
 TEST_BCRYPT_HASH = "$2b$12$dummy_hash_for_testing_purposes"
@@ -235,7 +235,7 @@ def test_excluded_accounts_filter_drops_transfer_endpoints(analytics_db: Session
     account TO an excluded account passed the filter and silently inflated
     net worth via ``compute_account_balances``.
     """
-    from ledger_sync.db.models import UserPreferences
+    from moneybuddy.db.models import UserPreferences
 
     user = _make_user(analytics_db, "transfer-exclude@example.com")
     analytics_db.add(

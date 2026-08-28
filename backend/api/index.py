@@ -2,6 +2,6 @@
 
 from mangum import Mangum
 
-from ledger_sync.api.main import app
+from moneybuddy.api.main import app
 
 handler = Mangum(app, lifespan="off")

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from statistics import median
 
-from ledger_sync.core.analytics.anomalies import AnomaliesMixin
+from moneybuddy.core.analytics.anomalies import AnomaliesMixin
 
 # The three module-level constants that the tests rely on.
 _MZ = 0.6745

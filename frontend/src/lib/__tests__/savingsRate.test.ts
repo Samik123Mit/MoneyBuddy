@@ -552,7 +552,7 @@ describe('every route agrees on what counts as expense', () => {
   /**
    * ...but the two RATES answer different questions and must NOT be forced equal.
    *
-   * `_totals_payload` (backend/src/ledger_sync/api/calculations.py:142-148) is
+   * `_totals_payload` (backend/src/moneybuddy/api/calculations.py:142-148) is
    * `net_savings = income - expenses - losses` then
    * `savings_rate = net_savings / income`, so the endpoint's rate CARRIES the
    * loss: 40% on these rows. The health panel's metric excludes it from both

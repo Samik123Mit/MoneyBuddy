@@ -36,8 +36,8 @@ from pathlib import Path
 import pytest
 import sqlalchemy as sa
 
-from ledger_sync.db import models  # noqa: F401  (registers every table on Base)
-from ledger_sync.db.base import Base
+from moneybuddy.db import models  # noqa: F401  (registers every table on Base)
+from moneybuddy.db.base import Base
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
@@ -46,10 +46,10 @@ def _run_upgrade(db_path: Path) -> subprocess.CompletedProcess[str]:
     """Run ``alembic upgrade head`` against ``db_path``."""
     env = {
         **os.environ,
-        "LEDGER_SYNC_DATABASE_URL": f"sqlite:///{db_path.as_posix()}",
+        "MONEYBUDDY_DATABASE_URL": f"sqlite:///{db_path.as_posix()}",
         # Alembic's env.py imports settings; keep this run independent of any
         # developer .env so the test target is always the temp database.
-        "LEDGER_SYNC_JWT_SECRET_KEY": "test-secret-key-at-least-32-characters-long",
+        "MONEYBUDDY_JWT_SECRET_KEY": "test-secret-key-at-least-32-characters-long",
     }
     return subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head"],

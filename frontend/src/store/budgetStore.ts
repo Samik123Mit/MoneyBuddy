@@ -39,7 +39,7 @@ export const useBudgetStore = create<BudgetState>()(
       getBudget: (category) => get().budgets.find((b) => b.category === category),
     }),
     {
-      name: 'ledger-sync-budgets',
+      name: 'moneybuddy-budgets',
     }
   )
 )

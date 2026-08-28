@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'backend/src/ledger_sync/db/migrations/**'
-      - 'backend/src/ledger_sync/db/models.py'
-      - 'backend/src/ledger_sync/db/_models/**'
+      - 'backend/src/moneybuddy/db/migrations/**'
+      - 'backend/src/moneybuddy/db/models.py'
+      - 'backend/src/moneybuddy/db/_models/**'
 
   workflow_dispatch: # Allow manual trigger
 
@@ -30,6 +30,6 @@ jobs:
       - name: Run Alembic migrations
         working-directory: backend
         env:
-          LEDGER_SYNC_DATABASE_URL: ${{ secrets.LEDGER_SYNC_DATABASE_URL }}
+          MONEYBUDDY_DATABASE_URL: ${{ secrets.MONEYBUDDY_DATABASE_URL }}
           PYTHONPATH: src
         run: uv run --no-sync --locked --no-build alembic upgrade head

@@ -12,8 +12,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from ledger_sync.core.analytics.cohort import CohortMixin
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.core.analytics.cohort import CohortMixin
+from moneybuddy.db.models import Transaction, TransactionType
 
 
 def _expense(date: datetime, amount: str) -> Transaction:

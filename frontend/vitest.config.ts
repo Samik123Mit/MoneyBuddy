@@ -12,15 +12,9 @@ export default defineConfig({
     // *.tmp.test.tsx and gitignored. They deliberately assert what a library
     // currently does, including its bugs, so they must never gate the suite.
     //
-    // `.claude` is excluded for a different reason: it holds local agent state,
-    // including git worktrees checked out under it. A worktree is a second copy
-    // of this same suite, so without this the local run reports 147 files /
-    // 1741 tests against CI's 116 / 1383 -- inflated counts that make a real
-    // regression impossible to spot by number.
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/.claude/**',
       '**/*.tmp.test.{ts,tsx}',
     ],
     coverage: {

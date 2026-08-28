@@ -14,12 +14,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from ledger_sync.core._analytics_helpers import (
+from moneybuddy.core._analytics_helpers import (
     classify_pattern_kind,
     day_of_month_anchor_share,
     duplicate_period_share,
 )
-from ledger_sync.db.models import RecurrenceFrequency
+from moneybuddy.db.models import RecurrenceFrequency
 
 
 def _dates(*specs: tuple[int, int, int]) -> list[datetime]:

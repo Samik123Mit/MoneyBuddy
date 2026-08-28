@@ -34,7 +34,7 @@ in a real exported ledger, verified with::
 soft-deleted rows, so an aggregate measured without it overstates several of
 these keys. Absolute counts and amounts stay out of tracked source (this repo is
 public); the measurements live in the untracked notes under
-``.claude/docs/studies/``.
+``private study notes/``.
 
 The shipped defaults used "Refund & Cashbacks" (SINGULAR), "Deposits Return",
 "Stock Market Profits" and "F&O Income" -- each matching 0 rows.
@@ -47,9 +47,9 @@ from decimal import Decimal
 
 import pytest
 
-from ledger_sync.core.analytics.base import AnalyticsEngineBase
-from ledger_sync.core.analytics.classification import ClassificationMixin
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.core.analytics.base import AnalyticsEngineBase
+from moneybuddy.core.analytics.classification import ClassificationMixin
+from moneybuddy.db.models import Transaction, TransactionType
 
 
 class _Defaults(ClassificationMixin):

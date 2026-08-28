@@ -381,7 +381,7 @@ export function normalizeArray(value: string[] | string): string[] {
 
 export function getStoredWidgets(): string[] {
   try {
-    const raw = localStorage.getItem('ledger-sync-visible-widgets')
+    const raw = localStorage.getItem('moneybuddy-visible-widgets')
     // JSON.parse is typed `any`; keep it at `unknown` and narrow. A stored
     // non-array (corrupted value) previously returned as-is; it now falls
     // through to the default set instead of poisoning callers with a non-array.

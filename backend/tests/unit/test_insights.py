@@ -28,10 +28,10 @@ from decimal import Decimal
 
 import pytest
 
-from ledger_sync.core import insight_generators_time
-from ledger_sync.core.insight_generators import category_insights, spending_insights
-from ledger_sync.core.insight_generators_time import behavioral_insights, temporal_insights
-from ledger_sync.core.insight_rules import (
+from moneybuddy.core import insight_generators_time
+from moneybuddy.core.insight_generators import category_insights, spending_insights
+from moneybuddy.core.insight_generators_time import behavioral_insights, temporal_insights
+from moneybuddy.core.insight_rules import (
     DEFAULT_CURRENCY_SYMBOL,
     INSIGHT_SEVERITIES,
     RECENT_MONTHS_WINDOW,
@@ -40,8 +40,8 @@ from ledger_sync.core.insight_rules import (
     is_partial_month,
     month_key,
 )
-from ledger_sync.core.insights import InsightEngine, resolve_currency_symbol
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.core.insights import InsightEngine, resolve_currency_symbol
+from moneybuddy.db.models import Transaction, TransactionType
 
 # 26 July 2026: July has 31 days, so 2026-07 is the month in progress and
 # 2026-06 and earlier are complete.

@@ -1,7 +1,7 @@
 """Tests for authentication logic."""
 
-from ledger_sync.core.auth.passwords import get_password_hash, verify_password
-from ledger_sync.core.auth.tokens import create_access_token, create_refresh_token, verify_token
+from moneybuddy.core.auth.passwords import get_password_hash, verify_password
+from moneybuddy.core.auth.tokens import create_access_token, create_refresh_token, verify_token
 
 
 class TestPasswords:

@@ -1,4 +1,4 @@
-# Pre-commit hooks for ledger-sync monorepo
+# Pre-commit hooks for moneybuddy monorepo
 # Install: pip install pre-commit && pre-commit install
 # Run all: pre-commit run --all-files
 

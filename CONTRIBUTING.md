@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for improving Ledger Sync. Keep changes focused and verify the affected behavior plus both quality gates before opening a PR.
+Thanks for improving MoneyBuddy. Keep changes focused and verify the affected behavior before opening a PR.
 
 ## Setup
 

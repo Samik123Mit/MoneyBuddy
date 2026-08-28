@@ -15,9 +15,9 @@ from typing import Any
 import pytest
 from sqlalchemy.orm import Session
 
-from ledger_sync.core import rules as rules_engine
-from ledger_sync.core.sync_engine import SyncEngine
-from ledger_sync.db.models import (
+from moneybuddy.core import rules as rules_engine
+from moneybuddy.core.sync_engine import SyncEngine
+from moneybuddy.db.models import (
     Anomaly,
     AnomalyType,
     Transaction,
@@ -25,7 +25,7 @@ from ledger_sync.db.models import (
     TransactionType,
     User,
 )
-from ledger_sync.ingest.hash_id import TransactionHasher
+from moneybuddy.ingest.hash_id import TransactionHasher
 
 RULE_KEYS = {
     "id",

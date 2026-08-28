@@ -9,7 +9,7 @@ import { generateDemoTransactions } from '../generateTransactions'
  *
  * Savings is the NET CHANGE IN THE INVESTMENT PERIMETER -- allocations into
  * SIP/PPF/EPF/NPS/stocks minus redemptions out of them (`_compute_buckets` in
- * `backend/src/ledger_sync/api/analytics_v2_impl/spending_rule.py`). It is NOT
+ * `backend/src/moneybuddy/api/analytics_v2_impl/spending_rule.py`). It is NOT
  * `income - expenses`. The mock used to compute it that way, which has two
  * consequences that this file pins:
  *

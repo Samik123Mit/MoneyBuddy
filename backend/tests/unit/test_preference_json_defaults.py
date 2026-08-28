@@ -15,7 +15,7 @@ Consequence measured on the owner's live ledger: the 7 shipped defaults classify
 roughly seven tenths of expense as essential; the empty set classifies 0.00%,
 i.e. 100% of spend is booked discretionary and every needs/wants surface reads
 0% needs. Absolute figures stay out of tracked source (this repo is public); the
-measurements live in the untracked study notes under ``.claude/docs/studies/``.
+measurements live in the untracked study notes under ``private study notes/``.
 
 Three write paths put ``"[]"`` there for users with no opinion -- the model
 default, ``_get_or_create_preferences``, and ``POST /api/preferences/reset`` --
@@ -36,13 +36,13 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.orm import Session
 
-from ledger_sync.core._analytics_helpers import DEFAULT_ESSENTIAL_CATEGORIES
-from ledger_sync.core.analytics.base import (
+from moneybuddy.core._analytics_helpers import DEFAULT_ESSENTIAL_CATEGORIES
+from moneybuddy.core.analytics.base import (
     _INCOME_LIST_DEFAULTS,
     AnalyticsEngineBase,
 )
-from ledger_sync.core.analytics_engine import AnalyticsEngine
-from ledger_sync.db.models import (
+from moneybuddy.core.analytics_engine import AnalyticsEngine
+from moneybuddy.db.models import (
     MonthlySummary,
     Transaction,
     TransactionType,

@@ -9,11 +9,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from ledger_sync.api.deps import get_current_user
-from ledger_sync.api.main import app
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import Transaction, TransactionType, User, UserPreferences
-from ledger_sync.db.session import get_session
+from moneybuddy.api.deps import get_current_user
+from moneybuddy.api.main import app
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import Transaction, TransactionType, User, UserPreferences
+from moneybuddy.db.session import get_session
 
 # Fake bcrypt hash for test fixtures — not a real credential
 TEST_BCRYPT_HASH = "$2b$12$dummy_hash_for_testing_purposes"

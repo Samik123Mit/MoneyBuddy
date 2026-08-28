@@ -20,9 +20,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from ledger_sync.api.transactions import get_transaction_facets
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import Transaction, TransactionType, User, UserPreferences
+from moneybuddy.api.transactions import get_transaction_facets
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import Transaction, TransactionType, User, UserPreferences
 
 # Fake bcrypt hash for test fixtures -- not a real credential.
 TEST_BCRYPT_HASH = "$2b$12$dummy_hash_for_testing_purposes"

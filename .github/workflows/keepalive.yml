@@ -31,5 +31,5 @@ jobs:
           # We don't fail the workflow on non-200 -- the goal is only to keep
           # the branch warm; a transient 5xx during deploy is fine.
           curl --silent --max-time 30 \
-            "https://ledger-sync-api.vercel.app/health" \
+            "https://moneybuddy-api.vercel.app/health" \
             || echo "Ping returned non-zero, ignoring (transient OK)"

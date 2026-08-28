@@ -31,7 +31,7 @@ function health(overrides: Partial<DataHealth> = {}): DataHealth {
     last_import_at: '2026-07-04T09:12:00Z',
     days_stale: 22,
     last_import_file_name: 'Cashbook.xlsx',
-    // Probed live from backend/ledger_sync.db on 2026-07-26: re-importing the
+    // Probed live from backend/moneybuddy.db on 2026-07-26: re-importing the
     // same workbook matched almost every row instead of rejecting it.
     rows_processed: 8024,
     rows_inserted: 62,

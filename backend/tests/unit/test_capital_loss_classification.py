@@ -41,16 +41,16 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from ledger_sync.core.analytics.engine import AnalyticsEngine
-from ledger_sync.core.expense_class import (
+from moneybuddy.core.analytics.engine import AnalyticsEngine
+from moneybuddy.core.expense_class import (
     capital_loss_keys,
     capital_loss_sql_filter,
     classification_key,
     is_capital_loss,
     looks_like_capital_loss,
 )
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import (
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import (
     DailySummary,
     FYSummary,
     MonthlySummary,

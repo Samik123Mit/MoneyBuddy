@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledger_sync.core.analytics.fy_summaries import _TAX_NOTE_RE
+from moneybuddy.core.analytics.fy_summaries import _TAX_NOTE_RE
 
 
 @pytest.mark.parametrize(

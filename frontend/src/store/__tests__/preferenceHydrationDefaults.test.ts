@@ -30,7 +30,7 @@ import { DEFAULT_GROWTH_ASSUMPTIONS } from '@/types/salary'
  * spend booked discretionary, so 50/30/20, Lean FIRE, and every needs/wants
  * surface read 0% needs. Absolute amounts stay out of tracked source (this repo
  * is public); the measurements live in the untracked study notes under
- * .claude/docs/studies/.
+ * private study notes/.
  *
  * Fixing the STORE alone was not enough, which is why the resolver tests below
  * exist: `preferencesUtils` takes the list as an optional override

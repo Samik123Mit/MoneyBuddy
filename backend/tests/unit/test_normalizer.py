@@ -14,10 +14,10 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ledger_sync.core.sync_engine import SyncEngine
-from ledger_sync.db.models import Transaction, TransactionType, User
-from ledger_sync.ingest.hash_id import TransactionHasher
-from ledger_sync.ingest.normalizer import (
+from moneybuddy.core.sync_engine import SyncEngine
+from moneybuddy.db.models import Transaction, TransactionType, User
+from moneybuddy.ingest.hash_id import TransactionHasher
+from moneybuddy.ingest.normalizer import (
     DataNormalizer,
     NormalizationError,
     format_transfer_category,

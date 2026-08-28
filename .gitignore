@@ -49,7 +49,7 @@ coverage.xml
 *.db-journal
 *.sqlite
 *.sqlite3
-ledger_sync.db
+moneybuddy.db
 # Local pre-migration snapshots of the dev database (real financial data)
 *.db.bak*
 
@@ -218,12 +218,6 @@ connect.lock
 typings/
 .angular/
 
-# Claude Code: commit shared config (settings.json) + skills/, ignore per-user local state
-.claude/settings.local.json
-.claude/.last-context
-.mcp.json
-.superpowers/
-
 # Added for consistency
 .env.*.local
 Thumbs.db
@@ -237,9 +231,7 @@ test-results/
 /*.jpeg
 /*.png
 
-# AI assistant local files
 MEMORY.md
-.claude/
 
 # graphify knowledge graph artifacts
 graphify-out/

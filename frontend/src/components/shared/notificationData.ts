@@ -24,7 +24,7 @@ export interface Notification {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const DISMISSED_KEY = 'ledger-sync-dismissed-notifications'
+const DISMISSED_KEY = 'moneybuddy-dismissed-notifications'
 
 /**
  * Severity thresholds for notifications. Kept here as named constants so the

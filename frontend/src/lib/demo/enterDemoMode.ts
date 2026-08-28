@@ -12,7 +12,7 @@ import { generateDemoPreferences } from './generateDerivedData'
 
 export const DEMO_USER = {
   id: -1,
-  email: 'demo@ledger-sync.app',
+  email: 'demo@moneybuddy.app',
   full_name: 'Demo User',
   is_active: true,
   is_verified: true,

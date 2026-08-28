@@ -14,8 +14,8 @@ from decimal import Decimal
 
 import pytest
 
-from ledger_sync.api.calculations_helpers import _compute_quick_insights
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.api.calculations_helpers import _compute_quick_insights
+from moneybuddy.db.models import Transaction, TransactionType
 
 
 def _tx(

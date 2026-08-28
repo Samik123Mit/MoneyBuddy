@@ -19,9 +19,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from ledger_sync.core.analytics_engine import AnalyticsEngine
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import AccountType
+from moneybuddy.core.analytics_engine import AnalyticsEngine
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import AccountType
 
 #: Which bucket each account type feeds, split by balance sign. ``None`` means the
 #: balance is dropped (a credit card in credit is not an asset).

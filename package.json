@@ -1,14 +1,14 @@
 {
-  "name": "ledger-sync",
+  "name": "moneybuddy",
   "version": "2.24.0",
   "packageManager": "pnpm@11.17.0",
-  "description": "Personal finance dashboard -- import bank statements, track spending, and view analytics in any currency",
+  "description": "Production-style financial data platform for transaction ingestion, reconciliation, and analytics",
   "scripts": {
     "setup": "concurrently -n \"backend,frontend\" -c \"bgBlue.bold,bgMagenta.bold\" \"pnpm run setup:backend\" \"pnpm run setup:frontend\"",
     "setup:backend": "cd backend && uv sync --group dev",
     "setup:frontend": "cd frontend && pnpm install",
     "dev": "concurrently -n \"backend,frontend\" -c \"bgBlue.bold,bgMagenta.bold\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
-    "dev:backend": "cd backend && uv run python -m uvicorn ledger_sync.api.main:app --reload --reload-dir src --reload-include \"*.py\" --port 8000",
+    "dev:backend": "cd backend && uv run python -m uvicorn moneybuddy.api.main:app --reload --reload-dir src --reload-include \"*.py\" --port 8000",
     "dev:frontend": "cd frontend && pnpm run dev",
     "lint": "concurrently -n \"backend,frontend\" -c \"bgBlue.bold,bgMagenta.bold\" \"pnpm run lint:backend\" \"pnpm run lint:frontend\"",
     "lint:backend": "cd backend && uv run python -m ruff check .",
@@ -30,17 +30,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Sagargupta16/ledger-sync.git"
+    "url": "https://github.com/Samik123Mit/MoneyBuddy.git"
   },
   "keywords": [
-    "personal-finance",
-    "dashboard",
+    "financial-data-platform",
+    "reconciliation",
+    "ledger",
     "analytics",
     "multi-currency",
     "fastapi",
     "react",
     "self-hosted"
   ],
-  "author": "Sagar Gupta",
+  "author": "Samiksha Mitra",
   "license": "MIT"
 }

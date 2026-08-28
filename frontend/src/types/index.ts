@@ -85,7 +85,7 @@ export interface KPIs {
 export type { AccountType } from '@/constants/accountTypes'
 
 // Time range for analytics
-// Values must match backend TimeRange enum (ledger_sync.core.time_filter)
+// Values must match backend TimeRange enum (moneybuddy.core.time_filter)
 export type TimeRange =
   | 'all_time'
   | 'this_month'
@@ -142,7 +142,7 @@ export interface MonthlyAggregation {
 
 /**
  * `GET /api/calculations/account-balances`, matching `_compute_account_statistics`
- * in `backend/src/ledger_sync/api/calculations_helpers.py` key for key. The five
+ * in `backend/src/moneybuddy/api/calculations_helpers.py` key for key. The five
  * summary numbers are NESTED under `statistics`; anything that flattens them
  * reads `undefined` at runtime. `services/api/calculations.ts` aliases this as
  * `AccountBalances`, so this is the single definition of the wire shape.

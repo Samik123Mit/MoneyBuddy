@@ -173,7 +173,7 @@ export interface FYSummary {
 
 /**
  * Every member of the backend `AnomalyType` enum, in declaration order --
- * `backend/src/ledger_sync/db/_models/enums.py`. The column is
+ * `backend/src/moneybuddy/db/_models/enums.py`. The column is
  * `Enum(AnomalyType)`, so these are the only values the wire can carry.
  *
  * Single source of truth for the vocabulary: the union used to list five of the

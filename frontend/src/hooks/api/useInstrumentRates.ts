@@ -8,7 +8,7 @@ import { MS_PER_DAY } from '@/lib/dateUtils'
  * the source of truth -- we ship this only so the instrument projector
  * can render zero-network before the query resolves (or if /api/rates
  * returns 503). Keep loosely in sync with
- * backend/src/ledger_sync/config/instrument_rates.json.
+ * backend/src/moneybuddy/config/instrument_rates.json.
  */
 const FALLBACK_RATES: InstrumentRates = {
   updated_at: '2026-05-13',

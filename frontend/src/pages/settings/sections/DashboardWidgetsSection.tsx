@@ -23,13 +23,13 @@ export default function DashboardWidgetsSection({
       ? visibleWidgets.filter((w) => w !== key)
       : [...visibleWidgets, key]
     setVisibleWidgets(next)
-    localStorage.setItem('ledger-sync-visible-widgets', JSON.stringify(next))
+    localStorage.setItem('moneybuddy-visible-widgets', JSON.stringify(next))
   }
 
   const showAll = () => {
     const all = DASHBOARD_WIDGETS.map((w) => w.key)
     setVisibleWidgets([...all])
-    localStorage.setItem('ledger-sync-visible-widgets', JSON.stringify(all))
+    localStorage.setItem('moneybuddy-visible-widgets', JSON.stringify(all))
   }
 
   return (

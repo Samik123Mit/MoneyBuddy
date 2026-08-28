@@ -6,21 +6,21 @@ import { sectionReveal, slideInLeftItem, staggerContainer } from '@/constants/an
 const WORKFLOWS = [
   {
     icon: FileSpreadsheet,
-    title: 'Excel import',
+    title: 'Statement ingestion',
     description:
-      'Upload Money Manager Pro exports. Smart duplicate detection prevents double entries.',
+      'Upload CSV and Excel exports. Idempotent ingestion prevents duplicate ledger writes.',
     iconClass: 'bg-[var(--overlay-3)] text-app-blue',
   },
   {
     icon: Calculator,
-    title: 'Smart analytics',
+    title: 'Financial analytics',
     description:
       'Review 50/30/20 budgets, spending trends, income patterns, and investment returns.',
     iconClass: 'bg-[var(--overlay-3)] text-income',
   },
   {
     icon: Wallet,
-    title: 'India-focused planning',
+    title: 'Planning workflows',
     description:
       'Work with April-March fiscal years, INR formatting, and India-specific tax tools.',
     iconClass: 'bg-[var(--overlay-3)] text-app-orange',
@@ -44,12 +44,11 @@ export function WhatIsSection() {
               One reliable ledger
             </p>
             <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
-              What is Ledger Sync?
+              What is MoneyBuddy?
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              Ledger Sync is a personal finance management tool designed for the Indian market.
-              It imports Money Manager Pro transaction data and turns it into structured,
-              decision-ready analytics.
+              MoneyBuddy is a financial data platform that turns inconsistent transaction
+              exports into a normalized ledger for analytics, reconciliation, and reporting.
             </p>
 
             <motion.div
@@ -113,7 +112,7 @@ export function WhatIsSection() {
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 text-xs text-muted-foreground sm:px-6">
                 <span>Latest synced snapshot</span>
-                <span>Duplicate-safe import</span>
+                <span>Idempotent ingestion</span>
               </div>
             </div>
           </motion.div>

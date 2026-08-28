@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from ledger_sync.db.models import ImportLog
+from moneybuddy.db.models import ImportLog
 
 HISTORY_URL = "/api/upload/history"
 

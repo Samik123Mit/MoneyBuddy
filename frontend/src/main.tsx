@@ -30,6 +30,6 @@ if (rootElement) {
   )
 } else {
   console.error(
-    '[ledger-sync] Could not find #root element. The application cannot mount.'
+    '[moneybuddy] Could not find #root element. The application cannot mount.'
   )
 }

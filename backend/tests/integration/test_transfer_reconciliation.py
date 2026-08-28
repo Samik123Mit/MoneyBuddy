@@ -12,8 +12,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from ledger_sync.core.reconciler import Reconciler
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.core.reconciler import Reconciler
+from moneybuddy.db.models import Transaction, TransactionType
 
 
 def _transfer_row(

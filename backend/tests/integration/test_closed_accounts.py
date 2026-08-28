@@ -10,8 +10,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from ledger_sync.core.analytics_engine import AnalyticsEngine
-from ledger_sync.db.models import (
+from moneybuddy.core.analytics_engine import AnalyticsEngine
+from moneybuddy.db.models import (
     AccountClassification,
     Anomaly,
     AnomalyType,

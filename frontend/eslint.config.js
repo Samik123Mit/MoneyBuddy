@@ -9,14 +9,9 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   /**
-   * `.claude` holds local agent state, including git worktrees checked out
-   * under it. Those carry their own `frontend/tsconfig.json`, which made
-   * `projectService` report "multiple candidate TSConfigRootDirs" and fail to
-   * parse the real root configs -- 485 errors from files that are gitignored
-   * and never ship. The pre-commit eslint hook lints the whole tree, so this is
-   * what keeps a commit possible while an agent worktree exists.
+   * `dist` is build output and must never be linted as source.
    */
-  globalIgnores(['dist', '.claude']),
+  globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

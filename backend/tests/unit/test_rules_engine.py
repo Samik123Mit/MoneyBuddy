@@ -11,8 +11,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ledger_sync.core.rules import apply_rules_to_row, load_active_rules, match_rule
-from ledger_sync.db.models import CategorizationRule, User
+from moneybuddy.core.rules import apply_rules_to_row, load_active_rules, match_rule
+from moneybuddy.db.models import CategorizationRule, User
 
 
 def _rule(

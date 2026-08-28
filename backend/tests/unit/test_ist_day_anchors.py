@@ -19,9 +19,9 @@ from unittest.mock import patch
 
 import pytest
 
-from ledger_sync.core.analytics.anomalies import AnomaliesMixin
-from ledger_sync.core.analytics.net_worth import NetWorthMixin, _ist_day_start
-from ledger_sync.db.models import (
+from moneybuddy.core.analytics.anomalies import AnomaliesMixin
+from moneybuddy.core.analytics.net_worth import NetWorthMixin, _ist_day_start
+from moneybuddy.db.models import (
     Budget,
     FinancialGoal,
     NetWorthSnapshot,
@@ -59,9 +59,9 @@ def frozen_ist_night():
     would not reach any of them.
     """
     with (
-        patch("ledger_sync.core.analytics.net_worth.ledger_now") as net_worth_now,
-        patch("ledger_sync.core.analytics.anomalies.ledger_now") as anomalies_now,
-        patch("ledger_sync.api.analytics_v2_impl.networth_misc.ledger_today") as goals_today,
+        patch("moneybuddy.core.analytics.net_worth.ledger_now") as net_worth_now,
+        patch("moneybuddy.core.analytics.anomalies.ledger_now") as anomalies_now,
+        patch("moneybuddy.api.analytics_v2_impl.networth_misc.ledger_today") as goals_today,
     ):
         net_worth_now.return_value = JUST_AFTER_IST_MIDNIGHT
         anomalies_now.return_value = JUST_AFTER_IST_MIDNIGHT

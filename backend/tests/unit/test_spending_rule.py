@@ -48,7 +48,7 @@ then sum to exactly 100.00% of income in all of them.
 
 Every fixture below is shaped like real rows from that ledger -- the compound
 ``Transfer: Bank: HDFC -> Stocks: Groww`` category is the exact string the
-ledger-sync Excel template writes.
+moneybuddy Excel template writes.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from ledger_sync.api.analytics_v2_impl.spending_rule import (
+from moneybuddy.api.analytics_v2_impl.spending_rule import (
     _DEFAULT_INVESTMENT_ACCOUNTS,
     _DEFAULT_NEEDS,
     _aggregate_txns,
@@ -64,8 +64,8 @@ from ledger_sync.api.analytics_v2_impl.spending_rule import (
     _is_transfer_category,
     _pct_of_income,
 )
-from ledger_sync.core.expense_class import classification_key, is_capital_loss
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.core.expense_class import classification_key, is_capital_loss
+from moneybuddy.db.models import Transaction, TransactionType
 
 _ESSENTIALS = set(_DEFAULT_NEEDS)
 _INVESTMENTS = set(_DEFAULT_INVESTMENT_ACCOUNTS)

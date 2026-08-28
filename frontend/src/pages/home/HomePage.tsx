@@ -56,9 +56,9 @@ export default function HomePage() {
               <Landmark className="size-4.5" aria-hidden="true" />
             </div>
             <div>
-              <span className="block text-sm font-semibold leading-none">Ledger Sync</span>
+              <span className="block text-sm font-semibold leading-none">MoneyBuddy</span>
               <span className="mt-1 hidden text-[11px] leading-none text-muted-foreground sm:block">
-                Personal finance workspace
+                Financial data platform
               </span>
             </div>
           </Link>
@@ -106,8 +106,8 @@ export default function HomePage() {
                 Ready to take control?
               </h2>
               <p className="mt-3 max-w-xl text-base leading-7 text-muted-foreground">
-                Start tracking your finances today. It is free, private, and takes just a minute
-                to set up.
+                Start with a clean financial ledger, production-style analytics, and a faster
+                way to inspect imported transaction data.
               </p>
             </div>
 

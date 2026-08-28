@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
 
-from ledger_sync.core.ledger_clock import (
+from moneybuddy.core.ledger_clock import (
     IST_OFFSET,
     financial_year_label,
     financial_year_start,

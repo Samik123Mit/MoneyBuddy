@@ -7,7 +7,7 @@ import { ROUTES } from '@/constants'
 /**
  * `PAGE_TITLES` is a hand-maintained map keyed by pathname, so it drifts the
  * moment a route is added without a matching entry -- and it fails quietly: the
- * header falls back to "Ledger Sync" and `document.title` loses its page name.
+ * header falls back to "MoneyBuddy" and `document.title` loses its page name.
  * That is how `/data-health` and `/merchants` both shipped untitled.
  *
  * Keying off `ROUTES` means adding a route to the router is enough to fail this

@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from ledger_sync.core.encryption import (
+from moneybuddy.core.encryption import (
     DecryptionError,
     decrypt_api_key,
     encrypt_api_key,
@@ -53,7 +53,7 @@ def test_legacy_v1_ciphertext_decrypts_and_flags_reencrypt():
     Recreates the exact byte layout the old encryption.py produced so we can
     prove the fallback branch works without depending on git-history code.
     """
-    from ledger_sync.config.settings import settings
+    from moneybuddy.config.settings import settings
 
     plaintext = "sk-legacy-key"
     salt = b"\x01" * 16

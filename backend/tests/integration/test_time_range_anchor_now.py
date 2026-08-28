@@ -1,8 +1,8 @@
 """Time-range filters anchor on ``now()``, not on the latest transaction.
 
 Covers both implementations:
-- ``ledger_sync.core.time_filter.TimeFilter`` (in-memory list filter)
-- ``ledger_sync.api.analytics_helpers._get_time_range_dates`` (DB query)
+- ``moneybuddy.core.time_filter.TimeFilter`` (in-memory list filter)
+- ``moneybuddy.api.analytics_helpers._get_time_range_dates`` (DB query)
 
 The behaviour change matters for users with stale data: clicking
 "This Month" should yield the current calendar month even if their data
@@ -20,10 +20,10 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from ledger_sync.api.analytics_helpers import _get_time_range_dates
-from ledger_sync.core.time_filter import TimeFilter, TimeRange
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import Transaction, TransactionType, User
+from moneybuddy.api.analytics_helpers import _get_time_range_dates
+from moneybuddy.core.time_filter import TimeFilter, TimeRange
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import Transaction, TransactionType, User
 
 TEST_BCRYPT_HASH = "$2b$12$dummy_hash_for_testing_purposes"
 
@@ -80,7 +80,7 @@ def test_in_memory_this_month_uses_now_not_latest_tx() -> None:
 
     # Anchored via ledger_clock now, so the seam is ledger_now, not the module's
     # `datetime` symbol. The mocked value is naive because that is the contract.
-    with patch("ledger_sync.core.time_filter.ledger_now") as mock_now:
+    with patch("moneybuddy.core.time_filter.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 15)
         result = TimeFilter.filter_by_range(txns, TimeRange.THIS_MONTH)
 
@@ -101,7 +101,7 @@ def test_in_memory_last_3_months_calendar_aligned() -> None:
 
     txns = [*in_range, out_of_range]
 
-    with patch("ledger_sync.core.time_filter.ledger_now") as mock_now:
+    with patch("moneybuddy.core.time_filter.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 15)
         result = TimeFilter.filter_by_range(txns, TimeRange.LAST_3_MONTHS)
 
@@ -121,7 +121,7 @@ def test_in_memory_filter_accepts_naive_dates_like_the_database_returns() -> Non
     """
     naive_row = _make_tx(1, datetime(2026, 5, 10), 100, "naive")
 
-    with patch("ledger_sync.core.time_filter.ledger_now") as mock_now:
+    with patch("moneybuddy.core.time_filter.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 17)
         result = TimeFilter.filter_by_range([naive_row], TimeRange.THIS_MONTH)
 
@@ -135,7 +135,7 @@ def test_in_memory_filter_mixes_naive_and_aware_without_raising() -> None:
         _make_tx(1, datetime(2026, 5, 11, tzinfo=UTC), 100, "aware"),
     ]
 
-    with patch("ledger_sync.core.time_filter.ledger_now") as mock_now:
+    with patch("moneybuddy.core.time_filter.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 17)
         result = TimeFilter.filter_by_range(rows, TimeRange.THIS_MONTH)
 
@@ -162,7 +162,7 @@ def test_in_memory_this_month_uses_the_ist_month() -> None:
         _make_tx(1, datetime(2026, 4, 1, 1, 0), 100, "april"),
     ]
 
-    with patch("ledger_sync.core.time_filter.ledger_now") as mock_now:
+    with patch("moneybuddy.core.time_filter.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 4, 1, 2, 0)
         result = TimeFilter.filter_by_range(rows, TimeRange.THIS_MONTH)
 
@@ -193,7 +193,7 @@ def test_db_this_month_anchors_on_now(db_session: Session, user: User) -> None:
 
     # Anchored via ledger_clock, so the bound is naive IST wall-clock time and
     # is directly comparable to the naive ``date`` column.
-    with patch("ledger_sync.api.analytics_helpers.ledger_now") as mock_now:
+    with patch("moneybuddy.api.analytics_helpers.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 17, 10, 30, 0)
         start, end = _get_time_range_dates(db_session, user, TimeRange.THIS_MONTH)
 
@@ -205,7 +205,7 @@ def test_db_last_3_months_calendar_aligned(db_session: Session, user: User) -> N
     db_session.add(_make_tx(user.id, datetime(2025, 11, 5, tzinfo=UTC), 100, "old"))
     db_session.commit()
 
-    with patch("ledger_sync.api.analytics_helpers.ledger_now") as mock_now:
+    with patch("moneybuddy.api.analytics_helpers.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 17)
         start, end = _get_time_range_dates(db_session, user, TimeRange.LAST_3_MONTHS)
 
@@ -219,7 +219,7 @@ def test_db_last_year_uses_now_year(db_session: Session, user: User) -> None:
     db_session.add(_make_tx(user.id, datetime(2023, 6, 1, tzinfo=UTC), 100, "old"))
     db_session.commit()
 
-    with patch("ledger_sync.api.analytics_helpers.ledger_now") as mock_now:
+    with patch("moneybuddy.api.analytics_helpers.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 17)
         start, end = _get_time_range_dates(db_session, user, TimeRange.LAST_YEAR)
 
@@ -241,7 +241,7 @@ def test_db_this_month_uses_the_ist_month_not_the_utc_month(
 
     # ledger_now() returns IST wall-clock, which is 2026-04-01 02:00 at the
     # instant UTC reads 2026-03-31 20:30.
-    with patch("ledger_sync.api.analytics_helpers.ledger_now") as mock_now:
+    with patch("moneybuddy.api.analytics_helpers.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 4, 1, 2, 0)
         start, _ = _get_time_range_dates(db_session, user, TimeRange.THIS_MONTH)
 
@@ -258,7 +258,7 @@ def test_db_bounds_are_naive_so_they_match_the_date_column(db_session: Session, 
     db_session.add(_make_tx(user.id, datetime(2026, 5, 5, tzinfo=UTC), 100, "may"))
     db_session.commit()
 
-    with patch("ledger_sync.api.analytics_helpers.ledger_now") as mock_now:
+    with patch("moneybuddy.api.analytics_helpers.ledger_now") as mock_now:
         mock_now.return_value = datetime(2026, 5, 17)
         start, end = _get_time_range_dates(db_session, user, TimeRange.LAST_YEAR)
 

@@ -3,7 +3,7 @@
  *
  * `resolveAccountCategory` used to switch on string literals, and one of the
  * cases -- `case 'Loans':` -- matched no value the backend can ever serve.
- * `AccountType.LOANS` in `backend/src/ledger_sync/db/_models/enums.py` serializes
+ * `AccountType.LOANS` in `backend/src/moneybuddy/db/_models/enums.py` serializes
  * as `'Loans/Lended'`; the column stores the enum NAME (`LOANS`) and the API
  * hands back `.value`, so `'Loans'` appeared on neither side of the wire. No
  * migration ever wrote it either, so it was not a legacy value in real rows --

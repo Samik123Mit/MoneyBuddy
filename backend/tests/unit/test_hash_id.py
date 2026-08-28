@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from ledger_sync.ingest.hash_id import TransactionHasher
+from moneybuddy.ingest.hash_id import TransactionHasher
 
 # SHA-256 produces 64 character hex string
 SHA256_HEX_LENGTH = 64

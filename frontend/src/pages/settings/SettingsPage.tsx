@@ -8,7 +8,6 @@ import { GroupHeader } from './sectionPrimitives'
 import DisplayPreferencesSection from './sections/DisplayPreferencesSection'
 import NotificationsSection from './sections/NotificationsSection'
 import DashboardWidgetsSection from './sections/DashboardWidgetsSection'
-import AIAssistantSection from './sections/AIAssistantSection'
 import FinancialSettingsSection from './sections/FinancialSettingsSection'
 import SalaryStructureSection from './sections/SalaryStructureSection'
 import AccountClassificationsSection from './sections/AccountClassificationsSection'
@@ -226,8 +225,6 @@ export default function SettingsPage() {
           visibleWidgets={s.visibleWidgets}
           setVisibleWidgets={s.setVisibleWidgets}
         />
-
-        <AIAssistantSection index={sectionIndex++} />
 
         {/* Group: Advanced -- rare/power-user config, collapsed by default */}
         <GroupHeader>Advanced</GroupHeader>

@@ -1,11 +1,8 @@
-import { Landmark, Search, Sparkles } from 'lucide-react'
+import { Landmark, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui'
-import { useQuery } from '@tanstack/react-query'
 
 import NotificationCenter from '@/components/shared/NotificationCenter'
-import { aiConfigService } from '@/services/api/aiConfig'
-import { useAuthStore } from '@/store/authStore'
 import { useDemoStore } from '@/store/demoStore'
 
 interface WorkspaceHeaderProps {
@@ -15,24 +12,10 @@ interface WorkspaceHeaderProps {
 export default function WorkspaceHeader({
   title,
 }: Readonly<WorkspaceHeaderProps>) {
-  const accessToken = useAuthStore((state) => state.accessToken)
   const isDemoMode = useDemoStore((state) => state.isDemoMode)
-  const { data: aiConfig } = useQuery({
-    queryKey: ['ai-config'],
-    queryFn: () => aiConfigService.getConfig(),
-    enabled: Boolean(accessToken) && !isDemoMode,
-    staleTime: Infinity,
-  })
-  const isAssistantReady =
-    (aiConfig?.mode ?? 'app_bedrock') === 'app_bedrock' ||
-    aiConfig?.has_key === true
 
   const openSearch = () => {
     document.dispatchEvent(new CustomEvent('open-command-palette'))
-  }
-
-  const openAssistant = () => {
-    document.dispatchEvent(new CustomEvent('open-ai-assistant'))
   }
 
   return (
@@ -61,20 +44,6 @@ export default function WorkspaceHeader({
             Ctrl K
           </kbd>
         </Button>
-
-        {accessToken && !isDemoMode && isAssistantReady && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={openAssistant}
-            className="hidden px-3 text-xs sm:inline-flex"
-            aria-label="Open AI Assistant"
-          >
-            <Sparkles className="size-3.5" />
-            <span>Ask AI</span>
-          </Button>
-        )}
 
         {!isDemoMode && <NotificationCenter />}
       </div>

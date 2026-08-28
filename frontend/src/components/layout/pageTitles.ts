@@ -6,7 +6,7 @@
  * component file breaks Fast Refresh (`react-refresh/only-export-components`).
  *
  * A page added to the router but not here fails quietly -- the header falls back
- * to the generic "Ledger Sync" and the browser tab loses its page name, which is
+ * to the generic "MoneyBuddy" and the browser tab loses its page name, which is
  * exactly how `/data-health` and `/merchants` shipped untitled. `pageTitles.test.ts`
  * keys off `ROUTES`, so adding a route is enough to fail the test.
  */

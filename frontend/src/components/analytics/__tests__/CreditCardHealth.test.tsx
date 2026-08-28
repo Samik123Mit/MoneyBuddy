@@ -5,7 +5,7 @@
  * not configured contributed a fabricated 1,00,000 to the total limit and to the
  * utilization percentage. The live account has 7 detected cards with 5 configured
  * limits totalling 10,40,000; the old code reported 12,40,000. The shape below is
- * that real account (values re-derived read-only from backend/ledger_sync.db via
+ * that real account (values re-derived read-only from backend/moneybuddy.db via
  * the same net-balance math /api/calculations/account-balances performs).
  *
  * The `||` was independently wrong too: a deliberate limit of 0 (blocked or

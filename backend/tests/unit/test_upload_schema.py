@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from ledger_sync.schemas.upload import (
+from moneybuddy.schemas.upload import (
     MAX_UPLOAD_ROWS,
     TransactionRow,
     TransactionUploadRequest,

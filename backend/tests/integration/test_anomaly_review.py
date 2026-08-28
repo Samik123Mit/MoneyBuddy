@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from ledger_sync.db.models import Anomaly, AnomalyType
+from moneybuddy.db.models import Anomaly, AnomalyType
 
 
 def _anomaly(user_id: int, *, description: str = "unusual spend") -> Anomaly:

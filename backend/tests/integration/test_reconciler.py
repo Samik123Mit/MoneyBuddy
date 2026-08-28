@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from ledger_sync.core.reconciler import Reconciler
+from moneybuddy.core.reconciler import Reconciler
 
 
 class TestReconciler:

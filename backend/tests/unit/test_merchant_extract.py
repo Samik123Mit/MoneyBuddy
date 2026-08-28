@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ledger_sync.core.analytics.merchant_extract import (
+from moneybuddy.core.analytics.merchant_extract import (
     clean_note,
     extract_merchant,
     is_placeholder,

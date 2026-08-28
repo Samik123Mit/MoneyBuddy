@@ -2,7 +2,7 @@ import { apiClient } from './client'
 
 /**
  * The account types the backend actually serves, in `AccountType` declaration
- * order -- `backend/src/ledger_sync/db/_models/enums.py`. The API serializes
+ * order -- `backend/src/moneybuddy/db/_models/enums.py`. The API serializes
  * `classification.account_type.value`, so these are the enum VALUES, not names.
  *
  * This is the single source of truth for the wire vocabulary. The previous union

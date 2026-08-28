@@ -185,7 +185,7 @@ export function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>) {
                   <PiggyBank className="w-8 h-8 text-app-blue" />
                 </div>
                 <h2 id="auth-modal-title" className="text-xl font-semibold text-foreground">
-                  Welcome to Ledger Sync
+                  Welcome to MoneyBuddy
                 </h2>
                 <p className="text-muted-foreground text-sm mt-1">
                   Sign in to manage your finances

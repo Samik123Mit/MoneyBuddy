@@ -27,7 +27,7 @@ import { describe, expect, it } from 'vitest'
  * `services/api/analytics.ts` itself, so this cannot fall behind the client. The
  * backend half is hardcoded below with a citation, because Vite's dev server
  * refuses to serve files outside the frontend root ("Denied ID
- * .../backend/src/ledger_sync/api/analytics.py?raw"), so a test cannot read the
+ * .../backend/src/moneybuddy/api/analytics.py?raw"), so a test cannot read the
  * Python source. Re-verify the citations when a signature changes.
  */
 
@@ -44,14 +44,14 @@ const CLIENT_SOURCE = import.meta.glob('/src/services/api/analytics.ts', {
  * number in it moved, which is exactly how a citation rots into a lie.
  *
  *  - `/api/analytics/kpis` -> `get_kpis` in
- *    `backend/src/ledger_sync/api/analytics.py`
+ *    `backend/src/moneybuddy/api/analytics.py`
  *  - `/api/analytics/overview` -> `get_overview`, same file
  *  - `/api/analytics/behavior` -> `get_behavior`, same file
  *  - `/api/analytics/trends` -> `get_trends`, same file
  *    (all four declare exactly one param, `time_range`, defaulted to
  *    `TimeRange.ALL_TIME`; none takes a date window)
  *  - `/api/transactions` -> `get_transactions`,
- *    `backend/src/ledger_sync/api/transactions.py:328-336`. Ordering is NOT a
+ *    `backend/src/moneybuddy/api/transactions.py:328-336`. Ordering is NOT a
  *    param: line 359 is a hardcoded
  *    `query.order_by(Transaction.date.desc())`. The endpoint that does sort is
  *    `GET /api/transactions/search` (`sort_by` / `sort_order`, same file, lines

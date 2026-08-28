@@ -94,7 +94,7 @@ export const TIME_RANGE_OPTIONS = [
  *
  * Completing it to seven was the obvious fix and the wrong one.
  * `anomaly_types_enabled` is PERSISTED AND IGNORED -- nothing under
- * `backend/src/ledger_sync/core/` reads it (only `api/preferences.py` and
+ * `backend/src/moneybuddy/core/` reads it (only `api/preferences.py` and
  * `api/preferences_helpers.py`, which store it and echo it back), so
  * `_detect_anomalies()` runs all of its detectors no matter what is ticked.
  * Completing the list would have turned three dead checkboxes into six.

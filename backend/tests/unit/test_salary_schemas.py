@@ -8,7 +8,7 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from ledger_sync.schemas.salary import (
+from moneybuddy.schemas.salary import (
     GrowthAssumptions,
     GrowthAssumptionsConfig,
     RsuGrant,

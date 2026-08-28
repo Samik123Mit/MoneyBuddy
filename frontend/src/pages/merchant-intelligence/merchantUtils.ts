@@ -9,7 +9,7 @@ import type {
 /**
  * Labels that carry no payee information.
  *
- * Mirrors `PLACEHOLDER_NOTES` in `backend/src/ledger_sync/core/analytics/
+ * Mirrors `PLACEHOLDER_NOTES` in `backend/src/moneybuddy/core/analytics/
  * merchant_extract.py`, which drops these at rollup-build time. The client
  * filter is not redundant: a rollup built before that guard shipped still has
  * the rows persisted, and on the real ledger "Unknown" was the single largest

@@ -12,7 +12,7 @@ const STABLE = { staleTime: Infinity, refetchOnWindowFocus: false } as const
 // Exported so mutations / prefetches can reference them for cache invalidation.
 
 // `time_range`, not a date window -- `GET /api/analytics/kpis` declares only
-// `time_range` (`get_kpis` in backend/src/ledger_sync/api/analytics.py). The old
+// `time_range` (`get_kpis` in backend/src/moneybuddy/api/analytics.py). The old
 // `{ start_date, end_date }` params were silently dropped by FastAPI, so a
 // date-filtered KPI read answered with all-time figures under a type that said
 // otherwise. Key shape is unchanged: no caller passes params today.

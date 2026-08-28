@@ -17,9 +17,9 @@ from datetime import UTC, datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from ledger_sync.core.analytics_engine import AnalyticsEngine
-from ledger_sync.db.base import Base
-from ledger_sync.db.models import RecurrenceFrequency
+from moneybuddy.core.analytics_engine import AnalyticsEngine
+from moneybuddy.db.base import Base
+from moneybuddy.db.models import RecurrenceFrequency
 
 
 def _engine() -> AnalyticsEngine:

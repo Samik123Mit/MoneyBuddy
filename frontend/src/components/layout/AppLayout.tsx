@@ -4,7 +4,6 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 
 import CommandPalette from '@/components/shared/CommandPalette'
-import ChatWidget from '@/components/chat/ChatWidget'
 import { DemoBanner } from '@/components/shared/DemoBanner'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { useDemoStore } from '@/store/demoStore'
@@ -33,7 +32,7 @@ export default function AppLayout() {
 
   // Dynamic page title + scroll reset on navigation
   useEffect(() => {
-    document.title = `${pageTitle} | Ledger Sync`
+    document.title = `${pageTitle} | MoneyBuddy`
     document.getElementById('main-content')?.scrollTo(0, 0)
   }, [location.pathname, pageTitle])
 
@@ -81,7 +80,6 @@ export default function AppLayout() {
 
       {/* Global command palette -- Cmd+K / Ctrl+K */}
       <CommandPalette />
-      <ChatWidget />
     </div>
   )
 }

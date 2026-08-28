@@ -16,7 +16,7 @@ from decimal import Decimal
 
 import pytest
 
-from ledger_sync.core.calculator import (
+from moneybuddy.core.calculator import (
     calculate_category_concentration,
     calculate_consistency_score,
     calculate_convenience_spending,
@@ -31,7 +31,7 @@ from ledger_sync.core.calculator import (
     group_by_category,
     group_by_month,
 )
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.db.models import Transaction, TransactionType
 
 
 def tx(

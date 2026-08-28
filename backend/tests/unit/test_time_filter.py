@@ -3,8 +3,8 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from ledger_sync.core.time_filter import TimeFilter, TimeRange, _subtract_months
-from ledger_sync.db.models import Transaction, TransactionType
+from moneybuddy.core.time_filter import TimeFilter, TimeRange, _subtract_months
+from moneybuddy.db.models import Transaction, TransactionType
 
 
 def tx(date: datetime) -> Transaction:

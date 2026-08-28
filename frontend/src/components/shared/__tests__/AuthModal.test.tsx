@@ -57,7 +57,7 @@ describe('AuthModal', () => {
     trigger.focus()
     fireEvent.click(trigger)
 
-    const dialog = await screen.findByRole('dialog', { name: 'Welcome to Ledger Sync' })
+    const dialog = await screen.findByRole('dialog', { name: 'Welcome to MoneyBuddy' })
     const close = screen.getByRole('button', { name: 'Close sign-in dialog' })
     const github = await screen.findByRole('button', { name: 'Continue with GitHub' })
 
