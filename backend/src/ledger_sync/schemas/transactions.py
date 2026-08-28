@@ -1,0 +1,145 @@
+"""Pydantic schemas for transaction-related API requests and responses."""
+
+from datetime import datetime
+
+from pydantic import BaseModel, Field
+
+
+class UploadResponse(BaseModel):
+    """Response model for file upload."""
+
+    success: bool
+    message: str
+    stats: dict[str, int]
+    file_name: str
+
+
+class ImportHistoryEntry(BaseModel):
+    """One past import, as shown in the Upload page's history list.
+
+    ``imported_at`` is serialized as an explicit UTC ISO-8601 string. The column
+    is a naive ``DateTime`` holding UTC values on both SQLite and Postgres, so
+    handing the naive value straight to the browser would be read as local time
+    and shift the displayed timestamp by the viewer's offset.
+
+    ``file_hash`` is included because it is the idempotency key: re-uploading a
+    file with a matching hash is what produces the 409 conflict prompt, so
+    surfacing it explains why a repeat upload was refused.
+    """
+
+    id: int
+    file_name: str
+    file_hash: str
+    imported_at: str
+    rows_processed: int
+    rows_inserted: int
+    rows_updated: int
+    rows_deleted: int
+    rows_skipped: int
+
+
+class ImportHistoryResponse(BaseModel):
+    """Most-recent-first page of import history."""
+
+    imports: list[ImportHistoryEntry]
+    total_count: int
+
+
+class HealthResponse(BaseModel):
+    """Health check response."""
+
+    status: str
+    version: str
+
+
+class TransactionResponse(BaseModel):
+    """Single transaction response model."""
+
+    id: str
+    date: str
+    amount: float
+    currency: str
+    type: str
+    category: str
+    subcategory: str
+    account: str
+    from_account: str | None = None
+    to_account: str | None = None
+    note: str
+    source_file: str
+    last_seen_at: str
+    is_transfer: bool
+    tags: list[str] = Field(default_factory=list)
+
+
+class TransactionsListResponse(BaseModel):
+    """Paginated transactions list response."""
+
+    data: list[TransactionResponse]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class TagFacet(BaseModel):
+    """Single tag facet entry: tag name plus live-transaction usage count."""
+
+    name: str
+    count: int
+
+
+class TransactionFacetsResponse(BaseModel):
+    """Lightweight facets for the Transactions page UI.
+
+    Replaces three full-table fetches (the page previously pulled every
+    transaction just to derive dropdown options and type counts). Computed
+    server-side via ``GROUP BY`` / ``DISTINCT`` so the browser never sees the
+    raw ledger.
+    """
+
+    categories: list[str]
+    # Transfer routing labels ("Transfer: Bank: HDFC -> Stocks: Groww") are kept
+    # separate from real spending categories: they are per-account-pair strings,
+    # so they grow with the square of the account count and drown the list the
+    # user actually picks from. Still returned because filtering by a specific
+    # transfer route is legitimate -- just not mixed into `categories`.
+    transfer_categories: list[str] = Field(default_factory=list)
+    accounts: list[str]
+    tags: list[TagFacet] = Field(default_factory=list)
+    income_count: int
+    expense_count: int
+    transfer_count: int
+    total_count: int
+
+
+class TransactionCreateRequest(BaseModel):
+    """Request schema for manually creating a single transaction.
+
+    The ``type`` field accepts ``Income``, ``Expense``, or ``Transfer``.
+    For transfers, ``from_account`` and ``to_account`` should be provided.
+    """
+
+    date: datetime = Field(..., description="Transaction date")
+    amount: float = Field(..., gt=0, description="Transaction amount (positive)")
+    type: str = Field(
+        ...,
+        pattern="^(Income|Expense|Transfer)$",
+        description="Transaction type: Income, Expense, or Transfer",
+    )
+    category: str = Field(..., min_length=1, description="Transaction category")
+    subcategory: str | None = Field(None, description="Optional subcategory")
+    account: str = Field(..., min_length=1, description="Account name")
+    note: str | None = Field(None, description="Optional note or description")
+    from_account: str | None = Field(None, description="Source account (for transfers)")
+    to_account: str | None = Field(None, description="Destination account (for transfers)")
+
+
+class TransactionTagsUpdateRequest(BaseModel):
+    """Request schema for replacing a transaction's tag list.
+
+    Full replacement: an empty list clears all tags. The router
+    additionally validates each tag trimmed to 1-50 chars.
+    """
+
+    tags: list[str] = Field(..., max_length=10, description="Full replacement tag list")

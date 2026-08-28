@@ -1,0 +1,265 @@
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { AnimatePresence, motion } from 'motion/react'
+import { Command, Search } from 'lucide-react'
+
+import { ROUTES } from '@/constants'
+import { rawColors } from '@/constants/colors'
+import { useDebounce } from '@/hooks/useDebounce'
+import { transactionsService } from '@/services/api/transactions'
+
+import { PaletteResults } from './command-palette/PaletteResults'
+import {
+  PAGE_ENTRIES,
+  fuzzyMatch,
+  overlayVariants,
+  panelVariants,
+  type PaletteResult,
+  type TransactionResult,
+} from './command-palette/paletteData'
+
+export default function CommandPalette() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+
+  const navigate = useNavigate()
+
+  const close = useCallback(() => {
+    setIsOpen(false)
+    setQuery('')
+    setSelectedIndex(0)
+  }, [])
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsOpen((prev) => {
+          if (prev) {
+            setQuery('')
+            setSelectedIndex(0)
+            return false
+          }
+          setQuery('')
+          setSelectedIndex(0)
+          return true
+        })
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      setIsOpen(true)
+      setQuery('')
+      setSelectedIndex(0)
+    }
+    document.addEventListener('open-command-palette', handler)
+    return () => document.removeEventListener('open-command-palette', handler)
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
+    }
+  }, [isOpen])
+
+  const deferredQuery = useDeferredValue(query)
+  // Debounce before the queryKey: useDeferredValue only defers re-rendering,
+  // it does NOT coalesce fetches -- without this, every keystroke minted a new
+  // queryKey and fired a server search request per key. 300ms trailing-edge
+  // debounce (same pattern as TransactionFilters) bounds it to ~1 per pause.
+  const debouncedQuery = useDebounce(deferredQuery, 300)
+  const q = debouncedQuery.trim()
+
+  // Transaction matches come from the server-side search endpoint (note /
+  // category / account, top 5) instead of filtering the full ledger in the
+  // browser. Only runs while the palette is open with a non-empty query.
+  // keepPreviousData holds the previous matches on screen while the next
+  // fetch resolves, so the Transactions section doesn't flicker empty.
+  const { data: txMatches = [] } = useQuery({
+    queryKey: ['command-palette-search', q],
+    queryFn: () => transactionsService.getTransactions({ query: q, limit: 5 }),
+    enabled: isOpen && q.length > 0,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  })
+
+  const results: PaletteResult[] = useMemo(() => {
+    const items: PaletteResult[] = []
+
+    if (!q) {
+      for (const entry of PAGE_ENTRIES) {
+        items.push({ kind: 'page', entry })
+      }
+      return items
+    }
+
+    for (const entry of PAGE_ENTRIES) {
+      const matchesLabel = fuzzyMatch(entry.label, q)
+      const matchesKeyword = entry.keywords.some((kw) => fuzzyMatch(kw, q))
+      if (matchesLabel || matchesKeyword) {
+        items.push({ kind: 'page', entry })
+      }
+    }
+
+    for (const transaction of txMatches.slice(0, 5)) {
+      items.push({ kind: 'transaction', transaction } as TransactionResult)
+    }
+
+    return items
+  }, [q, txMatches])
+
+  const executeResult = useCallback(
+    (result: PaletteResult) => {
+      // `void navigate(...)`: typed `void | Promise<void>` by react-router but
+      // returns undefined under BrowserRouter (App.tsx), and closing the
+      // palette below does not depend on the transition resolving.
+      if (result.kind === 'page') {
+        void navigate(result.entry.path)
+      } else {
+        void navigate(ROUTES.TRANSACTIONS)
+      }
+      close()
+    },
+    [navigate, close],
+  )
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowDown': {
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0))
+          break
+        }
+        case 'ArrowUp': {
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1))
+          break
+        }
+        case 'Enter': {
+          e.preventDefault()
+          if (results[selectedIndex]) {
+            executeResult(results[selectedIndex])
+          }
+          break
+        }
+        case 'Escape': {
+          e.preventDefault()
+          close()
+          break
+        }
+      }
+    },
+    [results, selectedIndex, executeResult, close],
+  )
+
+  useEffect(() => {
+    if (!listRef.current) return
+    const selectedEl = listRef.current.querySelector(`[data-index="${selectedIndex}"]`)
+    selectedEl?.scrollIntoView({ block: 'nearest' })
+  }, [selectedIndex])
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] sm:pt-[15vh] px-4"
+          variants={overlayVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+        >
+          <motion.div
+            className="absolute inset-0 bg-[var(--modal-backdrop)]"
+            onClick={close}
+            aria-hidden="true"
+          />
+
+          <motion.div
+            className="relative flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-[var(--hairline-2)] bg-surface-dropdown shadow-[var(--glass-shadow-strong)]"
+            variants={panelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
+          >
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--hairline-2)]">
+              <Search
+                size={20}
+                className="flex-shrink-0"
+                style={{ color: rawColors.app.blue }}
+              />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setSelectedIndex(0)
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Search pages, transactions..."
+                className="min-h-11 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-text-quaternary"
+                aria-label="Search pages and transactions"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <kbd className="hidden sm:flex items-center gap-1 px-2 py-1 rounded bg-[var(--overlay-3)] border border-[var(--hairline-2)] text-xs font-medium text-text-tertiary">
+                ESC
+              </kbd>
+            </div>
+
+            <PaletteResults
+              results={results}
+              query={query}
+              selectedIndex={selectedIndex}
+              setSelectedIndex={setSelectedIndex}
+              executeResult={executeResult}
+              listRef={listRef}
+            />
+
+            <div className="flex items-center justify-between px-5 py-3 border-t border-[var(--hairline-2)] bg-[var(--overlay-2)]">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-xs text-text-tertiary">
+                  <kbd className="inline-flex items-center justify-center w-5 h-5 rounded bg-[var(--overlay-3)] border border-[var(--hairline-2)] text-[10px] text-text-tertiary">
+                    ↑
+                  </kbd>
+                  <kbd className="inline-flex items-center justify-center w-5 h-5 rounded bg-[var(--overlay-3)] border border-[var(--hairline-2)] text-[10px] text-text-tertiary">
+                    ↓
+                  </kbd>
+                  <span className="ml-1">Navigate</span>
+                </span>
+                <span className="flex items-center gap-1 text-xs text-text-tertiary">
+                  <kbd className="inline-flex items-center justify-center px-1.5 h-5 rounded bg-[var(--overlay-3)] border border-[var(--hairline-2)] text-[10px] text-text-tertiary">
+                    ↵
+                  </kbd>
+                  <span className="ml-1">Open</span>
+                </span>
+              </div>
+              <span className="flex items-center gap-1 text-xs text-text-quaternary">
+                <Command size={12} />
+                <span>K to toggle</span>
+              </span>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}

@@ -1,0 +1,358 @@
+import { useState } from 'react'
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, CheckCircle, Sparkles, Trash2 } from 'lucide-react'
+
+import ErrorState from '@/components/shared/ErrorState'
+import Button from '@/components/ui/Button'
+import {
+  aiConfigService,
+  type AIConfig,
+  type AIConfigUpdate,
+  type AIMode,
+} from '@/services/api/aiConfig'
+import { aiUsageService, type UsageResponse } from '@/services/api/aiUsage'
+
+import { Section } from '../sectionPrimitives'
+import { ByokConfigForm } from './ai/ByokConfigForm'
+import { AppModePanel, ModeToggle } from './ai/ModeToggle'
+import { TokenLimitsPanel } from './ai/TokenLimitsPanel'
+import { isBedrock } from './ai/aiConstants'
+
+interface Props {
+  index: number
+}
+
+export default function AIAssistantSection({ index }: Readonly<Props>) {
+  const queryClient = useQueryClient()
+  const {
+    data: config,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<AIConfig>({
+    queryKey: ['ai-config'],
+    queryFn: () => aiConfigService.getConfig(),
+    staleTime: Infinity,
+  })
+
+  const [provider, setProvider] = useState(() => config?.provider ?? '')
+  const [model, setModel] = useState(() => config?.model ?? '')
+  const [apiKey, setApiKey] = useState('')
+  const [region, setRegion] = useState(() => config?.region ?? 'us-east-1')
+  const [showKey, setShowKey] = useState(false)
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
+  const [testError, setTestError] = useState('')
+
+  // provider/model/region are seeded lazily, but the ['ai-config'] query has
+  // not resolved on first render so the initializers capture the empty
+  // defaults. Unlike the limit fields below they had no resync, so a saved BYOK
+  // config showed blank Provider/Model/Region until the user re-picked. Mirror
+  // the lastSynced* reconciliation: when config arrives (or changes), adopt it
+  // -- but only until the user edits, so we never clobber an in-progress change.
+  const [byokInteracted, setByokInteracted] = useState(false)
+  const [lastSyncedProvider, setLastSyncedProvider] = useState(config?.provider ?? null)
+  if (config && !byokInteracted && (config.provider ?? '') !== (lastSyncedProvider ?? '')) {
+    setLastSyncedProvider(config.provider ?? null)
+    setProvider(config.provider ?? '')
+    setModel(config.model ?? '')
+    setRegion(config.region ?? 'us-east-1')
+  }
+
+  const [dailyLimit, setDailyLimit] = useState<string>(() =>
+    config?.daily_token_limit == null ? '' : String(config.daily_token_limit),
+  )
+  const [monthlyLimit, setMonthlyLimit] = useState<string>(() =>
+    config?.monthly_token_limit == null ? '' : String(config.monthly_token_limit),
+  )
+  const [lastSyncedDaily, setLastSyncedDaily] = useState(config?.daily_token_limit ?? null)
+  const [lastSyncedMonthly, setLastSyncedMonthly] = useState(config?.monthly_token_limit ?? null)
+  const persistedDaily = config?.daily_token_limit ?? null
+  const persistedMonthly = config?.monthly_token_limit ?? null
+  if (persistedDaily !== lastSyncedDaily) {
+    setLastSyncedDaily(persistedDaily)
+    setDailyLimit(persistedDaily == null ? '' : String(persistedDaily))
+  }
+  if (persistedMonthly !== lastSyncedMonthly) {
+    setLastSyncedMonthly(persistedMonthly)
+    setMonthlyLimit(persistedMonthly == null ? '' : String(persistedMonthly))
+  }
+
+  const { data: usage } = useQuery<UsageResponse>({
+    queryKey: ['ai-usage'],
+    queryFn: () => aiUsageService.get(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  })
+
+  // `void queryClient.invalidateQueries(...)` below: query-core swallows refetch
+  // rejections internally, so these promises never reject. The mutation failures
+  // themselves are toasted by the global MutationCache onError in lib/queryClient.
+  const saveMutation = useMutation({
+    mutationFn: (data: AIConfigUpdate) => aiConfigService.updateConfig(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['ai-config'] })
+      setApiKey('')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => aiConfigService.deleteConfig(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['ai-config'] })
+      setProvider('')
+      setModel('')
+      setApiKey('')
+    },
+  })
+
+  const modeMutation = useMutation({
+    mutationFn: (mode: AIMode) => aiConfigService.setMode(mode),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['ai-config'] })
+      void queryClient.invalidateQueries({ queryKey: ['ai-usage'] })
+    },
+  })
+
+  const limitsMutation = useMutation({
+    mutationFn: async () => {
+      const daily = dailyLimit.trim()
+      const monthly = monthlyLimit.trim()
+      await aiUsageService.updateLimits({
+        daily_token_limit:
+          daily === '' ? undefined : Math.max(0, Number.parseInt(daily, 10)),
+        monthly_token_limit:
+          monthly === '' ? undefined : Math.max(0, Number.parseInt(monthly, 10)),
+        clear_daily: daily === '',
+        clear_monthly: monthly === '',
+      })
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['ai-config'] })
+      void queryClient.invalidateQueries({ queryKey: ['ai-usage'] })
+    },
+  })
+
+  const handleSave = () => {
+    if (!provider || !model) return
+    if (!isBedrock(provider) && !apiKey) return
+    saveMutation.mutate({
+      provider,
+      model,
+      // Bedrock: the user's API key (bearer token) when provided; the legacy
+      // placeholder keeps the shared server credential path.
+      api_key: isBedrock(provider) && !apiKey ? 'bedrock-uses-aws-credentials' : apiKey,
+      region: isBedrock(provider) ? region : undefined,
+    })
+  }
+
+  const handleTest = async () => {
+    if (!provider || !model) return
+    if (!isBedrock(provider) && !apiKey) return
+    setTestStatus('testing')
+    setTestError('')
+    try {
+      const testPrompt = 'Reply with just the word "OK".'
+      let url = ''
+      let headers: Record<string, string> = {}
+      let body = ''
+
+      if (provider === 'openai') {
+        url = 'https://api.openai.com/v1/chat/completions'
+        headers = {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+        // o-series reasoning models reject max_tokens; they need
+        // max_completion_tokens (and reasoning eats tokens, so allow more).
+        const isReasoning = /^o\d/i.test(model)
+        body = JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: testPrompt }],
+          ...(isReasoning ? { max_completion_tokens: 16 } : { max_tokens: 5 }),
+        })
+      } else if (provider === 'anthropic') {
+        url = 'https://api.anthropic.com/v1/messages'
+        headers = {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        }
+        body = JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: testPrompt }],
+          max_tokens: 5,
+        })
+      } else if (isBedrock(provider)) {
+        setTestError(
+          'Save config, then test via the chat widget (Bedrock uses server-side AWS credentials)',
+        )
+        setTestStatus('error')
+        return
+      } else {
+        // Bare `return` left testStatus on 'testing' forever, so an unrecognised
+        // provider spun the button's spinner with no error and no way out but a
+        // reload. Every other exit from this function resolves the status.
+        setTestError(`No connection test available for provider "${provider}"`)
+        setTestStatus('error')
+        return
+      }
+
+      const resp = await fetch(url, { method: 'POST', headers, body })
+      if (resp.ok) {
+        setTestStatus('success')
+      } else {
+        // Typed at the parse, not asserted after: `resp.json()` is `any`, so
+        // reading `.error.message` off it was unchecked, and a provider that
+        // answers a differently-shaped error body would have thrown on the
+        // member access instead of falling back to the status code.
+        const err: unknown = await resp.json().catch(() => ({}))
+        const errMsg =
+          (err as { error?: { message?: string } }).error?.message ?? `Error ${resp.status}`
+        setTestError(errMsg)
+        setTestStatus('error')
+      }
+    } catch {
+      setTestError('Network error -- check your connection')
+      setTestStatus('error')
+    }
+  }
+
+  const canSave = provider && model && (isBedrock(provider) || apiKey)
+
+  if (isLoading) return null
+  if (isError) {
+    return (
+      <Section
+        index={index}
+        icon={Sparkles}
+        title="AI Assistant"
+        description="Chat with your financial data"
+      >
+        <ErrorState
+          variant="compact"
+          title="Could not load AI settings"
+          message="Your saved AI configuration is unavailable."
+          onRetry={() => void refetch()}
+        />
+      </Section>
+    )
+  }
+
+  const mode: AIMode = config?.mode ?? 'app_bedrock'
+  const isByok = mode === 'byok'
+
+  return (
+    <Section
+      index={index}
+      icon={Sparkles}
+      title="AI Assistant"
+      description="Chat with your financial data"
+    >
+      <div className="space-y-4">
+        <ModeToggle
+          mode={mode}
+          onChange={(next) => modeMutation.mutate(next)}
+          appLimit={usage?.limits.app_daily_messages ?? 10}
+          pending={modeMutation.isPending}
+        />
+
+        {!isByok && <AppModePanel usage={usage} />}
+
+        {isByok && (
+          <>
+            <ByokConfigForm
+              config={config}
+              provider={provider}
+              setProvider={(v) => { setByokInteracted(true); setProvider(v) }}
+              model={model}
+              setModel={(v) => { setByokInteracted(true); setModel(v) }}
+              region={region}
+              setRegion={(v) => { setByokInteracted(true); setRegion(v) }}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              showKey={showKey}
+              setShowKey={setShowKey}
+              setTestStatus={setTestStatus}
+            />
+
+            {(provider || (usage && usage.all_time.call_count > 0)) && (
+              <TokenLimitsPanel
+                usage={usage}
+                dailyLimit={dailyLimit}
+                setDailyLimit={setDailyLimit}
+                monthlyLimit={monthlyLimit}
+                setMonthlyLimit={setMonthlyLimit}
+                onSave={() => limitsMutation.mutate()}
+                saving={limitsMutation.isPending}
+              />
+            )}
+
+            {provider && (
+              <div className="flex items-center gap-3 pt-2">
+                {!isBedrock(provider) && (
+                  <Button
+                    id="test-ai-connection"
+                    type="button"
+                    variant="secondary"
+                    // handleTest is async but wraps its whole body in
+                    // try/catch (setTestError on failure), so it never
+                    // rejects; `void` adapts it to the void-returning prop.
+                    onClick={() => void handleTest()}
+                    disabled={!apiKey || testStatus === 'testing'}
+                    isLoading={testStatus === 'testing'}
+                  >
+                    {testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
+                  </Button>
+                )}
+                <Button
+                  id="save-ai-configuration"
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!canSave || saveMutation.isPending}
+                  isLoading={saveMutation.isPending}
+                >
+                  {saveMutation.isPending ? 'Saving...' : 'Save'}
+                </Button>
+                {config?.has_key && (
+                  <Button
+                    id="remove-ai-configuration"
+                    type="button"
+                    variant="ghost"
+                    onClick={() => deleteMutation.mutate()}
+                    isLoading={deleteMutation.isPending}
+                    className="text-app-red hover:bg-app-red/10 hover:text-app-red"
+                    icon={<Trash2 className="w-3.5 h-3.5" />}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {testStatus === 'success' && (
+              <div className="flex items-center gap-2 text-sm text-app-green">
+                <CheckCircle className="w-4 h-4" />
+                Connection successful
+              </div>
+            )}
+            {testStatus === 'error' && (
+              <div className="flex items-center gap-2 text-sm text-app-red">
+                <AlertCircle className="w-4 h-4" />
+                {testError}
+              </div>
+            )}
+
+            {saveMutation.isSuccess && (
+              <div className="flex items-center gap-2 text-sm text-app-green">
+                <CheckCircle className="w-4 h-4" />
+                AI configuration saved. Open the chat widget (bottom-right) to start.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Section>
+  )
+}

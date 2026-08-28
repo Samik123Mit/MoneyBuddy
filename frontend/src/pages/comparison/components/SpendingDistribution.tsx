@@ -1,0 +1,170 @@
+import { motion } from 'motion/react'
+import {
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LabelList,
+  Rectangle,
+  type BarShapeProps,
+} from 'recharts'
+import { formatCurrency, formatCurrencyShort } from '@/lib/formatters'
+import { rawColors } from '@/constants/colors'
+import { chartTooltipProps, ChartContainer, shouldAnimate, GRID_DEFAULTS } from '@/components/ui'
+import { getChartAxisColor } from '@/constants/chartColors'
+import type { PeriodSummary } from '../types'
+
+interface SpendingDistributionProps {
+  periodA: PeriodSummary
+  periodB: PeriodSummary
+  distributionA: Array<{ name: string; value: number }>
+  distributionB: Array<{ name: string; value: number }>
+}
+
+/**
+ * Dim the side that spent less in this row so the eye lands on the winner.
+ *
+ * A `shape` render prop rather than `<Cell>` children -- Cell is deprecated and
+ * removed in Recharts 4.0. It cannot be a datum-carried `fillOpacity` either:
+ * both bars read the same row, and each needs the opposite opacity. The renderer
+ * reads `aWins` off `payload`, so the row and its paint can never come apart
+ * (Cell children were matched against the RENDERED bar list, which drops
+ * zero-width bars -- and a zero-spend category is exactly what this chart has).
+ */
+function renderSideShape(color: string, isPeriodA: boolean) {
+  return function SideShape(props: BarShapeProps) {
+    const aWins = Boolean((props.payload as { aWins?: boolean } | undefined)?.aWins)
+    const wins = isPeriodA ? aWins : !aWins
+    return <Rectangle {...props} fill={color} fillOpacity={wins ? 0.95 : 0.45} />
+  }
+}
+
+export function SpendingDistribution({
+  periodA, periodB, distributionA, distributionB,
+}: Readonly<SpendingDistributionProps>) {
+  const axisColor = getChartAxisColor()
+  if (distributionA.length === 0 && distributionB.length === 0) return null
+
+  // Merge both periods into butterfly chart data
+  const categorySet = new Set([...distributionA.map((d) => d.name), ...distributionB.map((d) => d.name)])
+  const aMap = Object.fromEntries(distributionA.map((d) => [d.name, d.value]))
+  const bMap = Object.fromEntries(distributionB.map((d) => [d.name, d.value]))
+  const butterflyData = Array.from(categorySet)
+    .map((name) => {
+      const a = aMap[name] || 0
+      const b = bMap[name] || 0
+      return {
+        name,
+        // Negative on the left bar so the chart extends in opposite directions.
+        periodA: -a,
+        periodB: b,
+        // Highlight the winner of each row by colour intensity. The loser
+        // gets a muted opacity so the eye lands on whichever side spent
+        // more in that category.
+        aWins: a >= b,
+      }
+    })
+    .sort((a, b) => Math.max(Math.abs(b.periodA), b.periodB) - Math.max(Math.abs(a.periodA), a.periodB))
+    .slice(0, 15) // top 15 categories
+  const maxVal = Math.max(
+    ...butterflyData.map((d) => Math.abs(d.periodA)),
+    ...butterflyData.map((d) => d.periodB),
+    1,
+  )
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.25 }}
+      className="glass rounded-2xl border border-border p-4 md:p-6"
+    >
+      <h2 className="text-lg font-semibold mb-1">Spending Distribution</h2>
+      <p className="text-xs text-text-tertiary mb-2">
+        Category-by-category comparison -- longer side = higher spend that period
+      </p>
+      <div className="flex items-center justify-center gap-6 mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: rawColors.app.blue }} />
+          <span className="text-xs text-muted-foreground">{periodA.label} (left)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: rawColors.app.indigo }} />
+          <span className="text-xs text-muted-foreground">{periodB.label} (right)</span>
+        </div>
+      </div>
+      <div style={{ height: Math.max(300, butterflyData.length * 32) }}>
+        <ChartContainer ariaLabel={`Spending distribution butterfly chart -- ${periodA.label} bars extend left, ${periodB.label} bars extend right, one diverging row per category`}>
+          <BarChart data={butterflyData} layout="vertical" stackOffset="sign" margin={{ top: 8, right: 50, bottom: 8, left: 50 }}>
+            <CartesianGrid {...GRID_DEFAULTS} horizontal={false} vertical={true} />
+            <XAxis
+              type="number"
+              domain={[-maxVal, maxVal]}
+              tick={{ fill: axisColor, fontSize: 10 }}
+              tickLine={false}
+              axisLine={{ stroke: rawColors.chart.axisLine }}
+              tickFormatter={(v: number) => formatCurrencyShort(Math.abs(v))}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={110}
+              tick={{ fill: axisColor, fontSize: 11 }}
+              tickLine={false}
+              axisLine={{ stroke: rawColors.chart.axisLine }}
+            />
+            <Tooltip
+              {...chartTooltipProps}
+              formatter={(value) => typeof value === 'number' ? formatCurrency(Math.abs(value)) : ''}
+              labelFormatter={(label) => label}
+            />
+            <Bar
+              dataKey="periodA"
+              name={periodA.label}
+              stackId="stack"
+              radius={[4, 0, 0, 4]}
+              shape={renderSideShape(rawColors.app.blue, true)}
+              isAnimationActive={shouldAnimate(butterflyData.length)}
+              animationDuration={600}
+              animationEasing="ease-out"
+            >
+              <LabelList
+                dataKey="periodA"
+                position="left"
+                fill={rawColors.chart.textMuted}
+                fontSize={10}
+                formatter={(v: unknown) => {
+                  const n = Math.abs(v as number)
+                  return n === 0 ? '' : formatCurrencyShort(n)
+                }}
+              />
+            </Bar>
+            <Bar
+              dataKey="periodB"
+              name={periodB.label}
+              stackId="stack"
+              radius={[0, 4, 4, 0]}
+              shape={renderSideShape(rawColors.app.indigo, false)}
+              isAnimationActive={shouldAnimate(butterflyData.length)}
+              animationDuration={600}
+              animationEasing="ease-out"
+            >
+              <LabelList
+                dataKey="periodB"
+                position="right"
+                fill={rawColors.chart.textMuted}
+                fontSize={10}
+                formatter={(v: unknown) => {
+                  const n = v as number
+                  return n === 0 ? '' : formatCurrencyShort(n)
+                }}
+              />
+            </Bar>
+          </BarChart>
+        </ChartContainer>
+      </div>
+    </motion.div>
+  )
+}

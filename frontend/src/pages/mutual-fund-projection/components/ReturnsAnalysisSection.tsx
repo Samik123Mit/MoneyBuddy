@@ -1,0 +1,142 @@
+import { BarChart3 } from 'lucide-react'
+
+import { useAnimatedValue } from '@/hooks/useAnimatedValue'
+import { formatCurrency } from '@/lib/formatters'
+
+/** Stat figure with the shared format-preserving count-up. */
+function AnimatedStat({ value, className }: Readonly<{ value: string; className: string }>) {
+  const animated = useAnimatedValue(value)
+  return (
+    <p className={`${className} tabular-nums`} title={value}>
+      {animated}
+    </p>
+  )
+}
+
+interface ReturnsAnalysisSectionProps {
+  currentValueInput: number
+  currentBalance: number
+  onCurrentValueChange: (value: number) => void
+  overrideGainsPercent: number
+  overrideGains: number
+  totalHistoricalInvested: number
+  xirrPercent: number
+  investmentDurationYears: number
+  effectiveCurrentValue: number
+  currentValueLabel: string
+  effectiveValueLabel: string
+  totalReturnColorClass: string
+  totalReturnSignPrefix: string
+  xirrColorClass: string
+  xirrSignPrefix: string
+  /** True once the user supplies a real market value, which is what makes the two rate tiles meaningful. */
+  hasCurrentValueOverride: boolean
+}
+
+export function ReturnsAnalysisSection(props: Readonly<ReturnsAnalysisSectionProps>) {
+  const {
+    currentValueInput,
+    currentBalance,
+    onCurrentValueChange,
+    overrideGainsPercent,
+    overrideGains,
+    totalHistoricalInvested,
+    xirrPercent,
+    investmentDurationYears,
+    effectiveCurrentValue,
+    currentValueLabel,
+    effectiveValueLabel,
+    totalReturnColorClass,
+    totalReturnSignPrefix,
+    xirrColorClass,
+    xirrSignPrefix,
+    hasCurrentValueOverride,
+  } = props
+
+  return (
+    <div className="mt-8 pt-6 border-t border-border">
+      <h4 className="text-md font-semibold mb-4 flex items-center gap-2">
+        <BarChart3 className="w-5 h-5 text-app-orange" />
+        Returns Analysis
+      </h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div>
+          <label
+            htmlFor="current-value"
+            className="block text-sm font-medium text-muted-foreground mb-2"
+          >
+            Current Value ({'₹'})
+          </label>
+          <input
+            id="current-value"
+            type="number"
+            inputMode="decimal"
+            value={currentValueInput || ''}
+            placeholder={formatCurrency(currentBalance).replace('₹', '').trim()}
+            onChange={(e) => onCurrentValueChange(Number(e.target.value))}
+            className="w-full bg-[var(--overlay-2)] border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-app-blue/50 focus:border-app-blue/30 transition-colors"
+            min="0"
+            step="1000"
+          />
+          <p className="text-xs text-muted-foreground mt-1">{currentValueLabel}</p>
+        </div>
+
+        {/* Both rate tiles need a market value. Without the override,
+            effectiveCurrentValue falls back to the book balance -- the same
+            contributions the denominator is built from -- so the "return" would
+            be a rounding residue (+0.14% on the owner's real fund). Show the
+            prompt instead of a number that looks measured and is not. */}
+        {hasCurrentValueOverride ? (
+          <div className="flex flex-col justify-center">
+            <p className="text-sm text-muted-foreground">Total Return</p>
+            <AnimatedStat
+              value={`${totalReturnSignPrefix}${overrideGainsPercent.toFixed(2)}%`}
+              className={`text-2xl font-bold ${totalReturnColorClass}`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatCurrency(overrideGains)} on {formatCurrency(totalHistoricalInvested)}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col justify-center">
+            <p className="text-sm text-muted-foreground">Total Return</p>
+            <p className="text-2xl font-bold text-text-quaternary">-</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter a current value to compute
+            </p>
+          </div>
+        )}
+
+        {hasCurrentValueOverride ? (
+          <div className="flex flex-col justify-center">
+            <p className="text-sm text-muted-foreground">Annualized Return (XIRR)</p>
+            <AnimatedStat
+              value={`${xirrSignPrefix}${xirrPercent.toFixed(2)}% p.a.`}
+              className={`text-2xl font-bold ${xirrColorClass}`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Over {investmentDurationYears.toFixed(1)} years
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col justify-center">
+            <p className="text-sm text-muted-foreground">Annualized Return (XIRR)</p>
+            <p className="text-2xl font-bold text-text-quaternary">-</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Needs a current value, not just contributions
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col justify-center">
+          <p className="text-sm text-muted-foreground">Effective Value</p>
+          <AnimatedStat
+            value={formatCurrency(effectiveCurrentValue)}
+            className="text-2xl font-bold text-app-orange"
+          />
+          <p className="text-xs text-muted-foreground mt-1">{effectiveValueLabel}</p>
+        </div>
+      </div>
+    </div>
+  )
+}

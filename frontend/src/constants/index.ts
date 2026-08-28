@@ -1,0 +1,89 @@
+// Re-export shared constants
+export * from './chartColors'
+export * from './accountTypes'
+export * from './colors'
+export * from './chartConfig'
+export * from './currencies'
+
+export const ROUTES = {
+  HOME: '/',
+  DEMO: '/demo',
+  DASHBOARD: '/dashboard',
+  OVERVIEW: '/overview',
+
+  // Data Management
+  UPLOAD: '/upload',
+  SETTINGS: '/settings',
+  DATA_HEALTH: '/data-health',
+
+  // Transactions
+  TRANSACTIONS: '/transactions',
+
+  // Investments
+  INVESTMENT_ANALYTICS: '/investments/analytics',
+  MUTUAL_FUND_PROJECTION: '/investments/sip-projection',
+  RETURNS_ANALYSIS: '/investments/returns',
+
+  // Tax
+  TAX_PLANNING: '/tax',
+  GST_ANALYSIS: '/tax/gst',
+
+  // Net Worth
+  NET_WORTH: '/net-worth',
+
+  // Spending Analysis
+  SPENDING_ANALYSIS: '/spending',
+  MERCHANT_INTELLIGENCE: '/merchants',
+  INCOME_ANALYSIS: '/income',
+  INCOME_EXPENSE_FLOW: '/income-expense-flow',
+  COMPARISON: '/comparison',
+  BUDGETS: '/budgets',
+  YEAR_IN_REVIEW: '/year-in-review',
+
+  // Trends & Forecasts
+  TRENDS_FORECASTS: '/forecasts',
+
+  // FIRE & Retirement
+  FIRE_CALCULATOR: '/fire-calculator',
+
+  // Monitoring
+  ANOMALIES: '/anomalies',
+  GOALS: '/goals',
+  SUBSCRIPTIONS: '/subscriptions',
+  BILL_CALENDAR: '/bill-calendar',
+
+  // Mobile
+  MORE: '/more',
+} as const
+
+const _apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined
+
+// Local development uses Vite's same-origin /api proxy. Set VITE_API_BASE_URL
+// at build time only when production uses a separate API host.
+export const API_BASE_URL = _apiBaseUrl || ''
+
+export const API_ENDPOINTS = {
+  // Upload
+  UPLOAD: '/api/upload',
+
+  // Transactions
+  TRANSACTIONS: '/api/transactions',
+  TRANSACTIONS_SEARCH: '/api/transactions/search',
+
+  // Meta
+  META_ACCOUNTS: '/api/meta/accounts',
+  META_FILTERS: '/api/meta/filters',
+
+  // Analytics
+  ANALYTICS_KPIS: '/api/analytics/kpis',
+  ANALYTICS_CHARTS_INCOME_EXPENSE: '/api/analytics/charts/income-expense',
+  ANALYTICS_CHARTS_CATEGORIES: '/api/analytics/charts/categories',
+  ANALYTICS_CHARTS_MONTHLY_TRENDS: '/api/analytics/charts/monthly-trends',
+
+  // Calculations
+  CALCULATIONS_TOTALS: '/api/calculations/totals',
+  CALCULATIONS_ACCOUNT_BALANCES: '/api/calculations/account-balances',
+  CALCULATIONS_CATEGORY_BREAKDOWN: '/api/calculations/category-breakdown',
+  CALCULATIONS_MONTHLY_AGGREGATION: '/api/calculations/monthly-aggregation',
+  CALCULATIONS_DAILY_NET_WORTH: '/api/calculations/daily-net-worth',
+} as const

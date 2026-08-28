@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Google Analytics is included only in production builds. -->
+    <script>
+      if ('%MODE%' === 'production') {
+        var analyticsScript = document.createElement('script');
+        analyticsScript.async = true;
+        analyticsScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-PFFMG7D8DP';
+        document.head.appendChild(analyticsScript);
+        globalThis.dataLayer = globalThis.dataLayer || [];
+        globalThis.gtag = function () {
+          globalThis.dataLayer.push(arguments);
+        };
+        globalThis.gtag('js', new Date());
+        globalThis.gtag('config', 'G-PFFMG7D8DP');
+      }
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="theme-color" content="#f7f7f5" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Apply the saved theme before first paint to avoid a flash of the wrong theme. -->
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem('ledger-sync-theme');
+          // Explicit choice wins; no value (or the legacy 'system') follows
+          // the OS preference -- the default for new users.
+          var resolved = m;
+          if (m !== 'dark' && m !== 'light') {
+            resolved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          }
+          document.documentElement.dataset.theme = resolved;
+          // Keep the mobile browser chrome in step with the selected theme.
+          var bar = resolved === 'light' ? '#eaf0f7' : '#0a0f16';
+          var setMeta = function (name, content) {
+            var el = document.querySelector('meta[name="' + name + '"]');
+            if (el) el.setAttribute('content', content);
+          };
+          setMeta('theme-color', bar);
+          setMeta('color-scheme', resolved);
+        } catch (error) {
+          console.warn('Unable to restore the saved theme; using light mode.', error);
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Ledger Sync - self-hosted personal finance dashboard with analytics, budgeting, and tax planning." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ledger Sync" />
+    <title>Ledger Sync</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

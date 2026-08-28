@@ -1,0 +1,312 @@
+import { useEffect, useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'motion/react'
+import { ChevronDown, type LucideIcon } from 'lucide-react'
+import { useCategoryBreakdown } from '@/hooks/api/useAnalytics'
+import { calculationsApi } from '@/services/api/calculations'
+import { formatCurrency } from '@/lib/formatters'
+import { CHART_COLORS } from '@/constants/chartColors'
+import EmptyState from '@/components/shared/EmptyState'
+import { ChartSkeleton } from '@/components/shared/LoadingSkeleton'
+import Sparkline from '@/components/shared/Sparkline'
+import { Money } from '@/components/ui'
+
+import { buildCategories, monthlyAvgLabel, trailingMonthKeys } from './categoryBreakdownUtils'
+
+interface CategoryBreakdownProps {
+  readonly transactionType: 'income' | 'expense'
+  readonly dateRange?: { start_date?: string | null; end_date?: string | null }
+  readonly headerIcon: LucideIcon
+  readonly headerIconColor: string
+  readonly headerTitle: string
+  readonly colorMap?: Record<string, string>
+  readonly defaultColors?: readonly string[]
+  readonly emptyIcon: LucideIcon
+  readonly emptyTitle: string
+  readonly emptyDescription: string
+  readonly emptyActionLabel?: string
+  readonly emptyActionHref?: string
+  /**
+   * When set, only this category is rendered (others hidden) and the
+   * row is auto-expanded to show subcategories. Used by deep-link flows
+   * like ``/spending?category=Food`` where the user wants to drill into
+   * a single category's composition without seeing the full breakdown.
+   */
+  readonly categoryFilter?: string | null
+}
+
+export default function CategoryBreakdown({
+  transactionType,
+  dateRange,
+  headerIcon: HeaderIcon,
+  headerIconColor,
+  headerTitle,
+  colorMap,
+  defaultColors = CHART_COLORS,
+  emptyIcon,
+  emptyTitle,
+  emptyDescription,
+  emptyActionLabel,
+  emptyActionHref,
+  categoryFilter,
+}: CategoryBreakdownProps) {
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
+
+  const { data: categoryData, isLoading } = useCategoryBreakdown({
+    transaction_type: transactionType,
+    start_date: dateRange?.start_date ?? undefined,
+    end_date: dateRange?.end_date ?? undefined,
+  })
+
+  // Per-category 12-month sparkline series, aggregated server-side over a
+  // trailing-12-month window. The client computes the month keys (local
+  // calendar) and the backend buckets into exactly those, so the window lines
+  // up with tx.date regardless of timezone -- no full-ledger fetch.
+  const monthKeys = useMemo(() => trailingMonthKeys(12), [])
+  const { data: historyByCategory } = useQuery({
+    queryKey: ['category-monthly-history', transactionType, monthKeys],
+    queryFn: async () =>
+      (await calculationsApi.getCategoryMonthlyHistory(monthKeys, transactionType)).data,
+    staleTime: Infinity,
+  })
+
+  const monthlyHistoryByCategory = useMemo(
+    () => new Map(Object.entries(historyByCategory ?? {})),
+    [historyByCategory],
+  )
+
+  const { categories, grandTotal } = useMemo(
+    () => buildCategories(categoryData, colorMap, defaultColors, monthlyHistoryByCategory, categoryFilter),
+    [categoryData, colorMap, defaultColors, monthlyHistoryByCategory, categoryFilter],
+  )
+
+  // Per-category monthly-average label, derived from the trailing 12-month
+  // series already on each row. `null` where there is nothing to average, so the
+  // clause is dropped rather than printed as a zero. The label carries its own
+  // divisor -- see `monthlyAvgLabel`.
+  const avgLabelByName = useMemo(
+    () => new Map(categories.map((cat) => [cat.name, monthlyAvgLabel(cat.monthlyHistory, formatCurrency)])),
+    [categories],
+  )
+
+  // Auto-expand when a single category is rendered (deep-link drill-down).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local UI state to a URL-derived prop
+    if (categoryFilter) setExpandedCategory(categoryFilter)
+  }, [categoryFilter])
+
+  const toggleExpand = (name: string) => {
+    setExpandedCategory((prev) => (prev === name ? null : name))
+  }
+
+  if (isLoading) {
+    return <ChartSkeleton height="h-80" />
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="bg-[var(--overlay-2)] p-6 rounded-xl border border-border">
+        <EmptyState
+          icon={emptyIcon}
+          title={emptyTitle}
+          description={emptyDescription}
+          actionLabel={emptyActionLabel}
+          actionHref={emptyActionHref}
+          variant="chart"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-[var(--overlay-2)] p-6 rounded-xl border border-border">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <HeaderIcon className={`w-5 h-5 ${headerIconColor}`} />
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">{headerTitle}</h3>
+            <p className="text-xs text-text-tertiary">{categories.length} categories &middot; {formatCurrency(grandTotal)} total</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stacked overview bar */}
+      <div className="flex h-3 rounded-full overflow-hidden mb-6">
+        {categories.map((cat) => (
+          <motion.div
+            key={cat.name}
+            className="h-full"
+            style={{
+              backgroundColor: cat.color,
+              width: `${cat.percent}%`,
+              transformOrigin: 'left',
+            }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+
+      {/* Category rows */}
+      <div className="space-y-1.5">
+        {categories.map((cat, i) => {
+          const isExpanded = expandedCategory === cat.name
+          const hasSubcategories = cat.subcategories.length > 0
+
+          return (
+            <div key={cat.name}>
+              {/* Category row */}
+              <button
+                type="button"
+                onClick={() => hasSubcategories && toggleExpand(cat.name)}
+                disabled={!hasSubcategories}
+                aria-expanded={hasSubcategories ? isExpanded : undefined}
+                className={`min-h-11 w-full text-left px-4 py-3 rounded-lg transition-all duration-150 group disabled:opacity-100 ${
+                  hasSubcategories ? 'cursor-pointer' : 'cursor-default'
+                } ${isExpanded ? 'bg-[var(--overlay-2)] border border-[var(--hairline-2)]' : 'bg-[var(--overlay-2)] border border-border hover:bg-[var(--overlay-2)] hover:border-[var(--hairline-3)]'}`}
+              >
+                <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] sm:gap-3">
+                  {/* Color dot */}
+                  <div
+                    className="row-span-2 h-3 w-3 shrink-0 rounded-full sm:row-span-1"
+                    style={{ backgroundColor: cat.color }}
+                  />
+
+                  {/* Name + compact meta (subcategory count, monthly average
+                      with its divisor). Reuses data already on the row -- no
+                      extra fetch. */}
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-medium text-foreground sm:truncate">
+                      {cat.name}
+                    </span>
+                    {(cat.subcategories.length > 0 || avgLabelByName.get(cat.name)) ? (
+                      <span className="block text-[11px] text-text-tertiary sm:truncate">
+                        {cat.subcategories.length > 0 && (
+                          <>{cat.subcategories.length} {cat.subcategories.length === 1 ? 'subcategory' : 'subcategories'}</>
+                        )}
+                        {cat.subcategories.length > 0 && avgLabelByName.get(cat.name) && (
+                          <span className="text-text-quaternary"> &middot; </span>
+                        )}
+                        {avgLabelByName.get(cat.name)}
+                      </span>
+                    ) : null}
+                  </span>
+
+                  {/* Percentage + Amount */}
+                  <span className="col-start-2 row-start-2 shrink-0 text-xs tabular-nums text-muted-foreground sm:col-auto sm:row-auto">
+                    {cat.percent.toFixed(1)}%
+                  </span>
+                  <Money
+                    value={cat.total}
+                    width="md"
+                    bold
+                    className="col-start-3 row-start-2 text-sm sm:col-auto sm:row-auto"
+                  />
+
+
+                  {/* Expand chevron */}
+                  {hasSubcategories && (
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="col-start-3 row-start-1 text-text-tertiary group-hover:text-foreground sm:col-auto sm:row-auto"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Proportional bar + 12-month sparkline.
+                    Bar answers "how much of total?" (and respects the active
+                    date filter), sparkline answers "trending up or down across
+                    the last year?". The sparkline is ALWAYS the trailing 12
+                    months from today regardless of the selected range -- the
+                    title says so, so a filtered amount + full-year trend don't
+                    read as contradicting each other. */}
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="flex-1 h-1.5 rounded-full bg-[var(--overlay-2)] overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{
+                        backgroundColor: cat.color,
+                        width: `${cat.percent}%`,
+                        transformOrigin: 'left',
+                      }}
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{
+                        duration: 0.18,
+                        ease: 'easeOut',
+                        delay: Math.min(i * 0.015, 0.1),
+                      }}
+                    />
+                  </div>
+                  {cat.monthlyHistory.length >= 2 && (
+                    <Sparkline
+                      variant="compact"
+                      data={cat.monthlyHistory}
+                      color={cat.color}
+                      ariaLabel={`${cat.name} trend over the last 12 months`}
+                      title={`${cat.name} -- last 12 months (independent of the selected date range)`}
+                    />
+                  )}
+                </div>
+              </button>
+
+              {/* Expanded subcategories */}
+              <AnimatePresence>
+                {isExpanded && hasSubcategories && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="ml-3 mr-1 sm:ml-6 sm:mr-2 py-1 space-y-0.5">
+                      {cat.subcategories.map((sub, si) => (
+                        <div
+                          key={sub.name}
+                          className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-[var(--overlay-2)] transition-colors duration-150"
+                        >
+                          {/* Indent marker */}
+                          <div
+                            className="w-1.5 h-1.5 rounded-full shrink-0 opacity-60"
+                            style={{ backgroundColor: cat.color }}
+                          />
+
+                          <span className="text-xs text-foreground flex-1 truncate">
+                            {sub.name}
+                          </span>
+
+                          {/* Subcategory bar */}
+                          <div className="w-12 md:w-20 h-1 rounded-full bg-[var(--overlay-2)] overflow-hidden shrink-0">
+                            <motion.div
+                              className="h-full rounded-full opacity-70"
+                              style={{ backgroundColor: cat.color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${sub.percent}%` }}
+                              transition={{ duration: 0.3, delay: si * 0.02 }}
+                            />
+                          </div>
+
+                          <span className="text-xs text-text-tertiary tabular-nums shrink-0 w-10 text-right">
+                            {sub.percent.toFixed(0)}%
+                          </span>
+                          <Money value={sub.amount} width="md" className="text-xs" />
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,118 @@
+import type { ReactNode } from 'react'
+
+/**
+ * Single shimmer bar. Decorative -- the surrounding skeleton container owns the
+ * loading announcement, so individual bars are `aria-hidden` to avoid a
+ * screen reader reading "Loading" once per bar.
+ */
+export default function LoadingSkeleton({ className = '' }: Readonly<{ className?: string }>) {
+  return (
+    <div aria-hidden className={`skeleton-surface rounded-lg ${className}`} />
+  )
+}
+
+/** Wraps a composite skeleton so AT announces a single "Loading" status. */
+function SkeletonStatus({ children, className = '' }: Readonly<{ children: ReactNode; className?: string }>) {
+  return (
+    <div aria-busy="true" className={className}>
+      <output className="sr-only">Loading</output>
+      {children}
+    </div>
+  )
+}
+
+export function MetricCardSkeleton() {
+  return (
+    <SkeletonStatus className="glass rounded-2xl p-6">
+      <div className="flex items-center gap-3">
+        <LoadingSkeleton className="w-12 h-12 rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <LoadingSkeleton className="h-4 w-24" />
+          <LoadingSkeleton className="h-8 w-32" />
+        </div>
+      </div>
+    </SkeletonStatus>
+  )
+}
+
+export function ChartSkeleton({ height = 'h-80' }: Readonly<{ height?: string }>) {
+  return (
+    <SkeletonStatus className={`glass rounded-2xl p-6 ${height}`}>
+      <div className="space-y-4 h-full">
+        <div className="flex items-center gap-3">
+          <LoadingSkeleton className="w-5 h-5 rounded" />
+          <LoadingSkeleton className="h-5 w-48" />
+        </div>
+        <div className="flex-1 flex items-end gap-2 pb-4">
+          {Array.from({ length: 12 }, (_, i) => ({
+            id: `chart-bar-${((i * 7) % 60) + 40}`,
+            heightPercent: ((i * 7) % 60) + 40,
+          })).map((bar) => (
+            <div key={bar.id} className="flex-1" style={{ height: `${bar.heightPercent}%` }}>
+              <LoadingSkeleton className="h-full w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </SkeletonStatus>
+  )
+}
+
+export function CardGridSkeleton({ count = 4, cols = 'grid-cols-2 lg:grid-cols-4' }: Readonly<{ count?: number; cols?: string }>) {
+  return (
+    <SkeletonStatus className={`grid ${cols} gap-4`}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="glass rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <LoadingSkeleton className="w-8 h-8 rounded-lg" />
+            <LoadingSkeleton className="h-3 w-20" />
+          </div>
+          <LoadingSkeleton className="h-5 w-24" />
+          <LoadingSkeleton className="h-2 w-16" />
+        </div>
+      ))}
+    </SkeletonStatus>
+  )
+}
+
+export function PageSkeleton() {
+  return (
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <LoadingSkeleton className="h-7 w-48" />
+          <LoadingSkeleton className="h-4 w-72" />
+        </div>
+        <LoadingSkeleton className="h-10 w-32 rounded-xl" />
+      </div>
+      <CardGridSkeleton />
+      <ChartSkeleton />
+      <ChartSkeleton height="h-64" />
+    </div>
+  )
+}
+
+export function TableSkeleton({ rows = 5 }: Readonly<{ rows?: number }>) {
+  return (
+    <SkeletonStatus className="glass rounded-2xl overflow-hidden">
+      <div className="bg-[var(--overlay-2)] p-4 border-b border-border">
+        <div className="flex gap-4">
+          <LoadingSkeleton className="h-4 w-24" />
+          <LoadingSkeleton className="h-4 w-32" />
+          <LoadingSkeleton className="h-4 w-20" />
+          <LoadingSkeleton className="h-4 flex-1" />
+        </div>
+      </div>
+      <div className="divide-y divide-[var(--hairline-1)]">
+        {Array.from({ length: rows }, (_, i) => `table-row-${i + 1}`).map((rowKey) => (
+          <div key={rowKey} className="p-4 flex gap-4">
+            <LoadingSkeleton className="h-4 w-24" />
+            <LoadingSkeleton className="h-4 w-32" />
+            <LoadingSkeleton className="h-4 w-20" />
+            <LoadingSkeleton className="h-4 flex-1" />
+          </div>
+        ))}
+      </div>
+    </SkeletonStatus>
+  )
+}

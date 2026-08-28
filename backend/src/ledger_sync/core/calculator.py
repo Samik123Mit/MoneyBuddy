@@ -1,0 +1,324 @@
+"""Centralized calculation service for financial metrics and insights.
+
+All calculations are pure module-level functions that take transaction data
+and return computed metrics.
+
+Uses Decimal for all financial arithmetic to avoid floating-point precision loss.
+"""
+
+from collections import defaultdict
+from datetime import timedelta
+from decimal import Decimal
+from statistics import mean, pstdev
+from typing import Any
+
+from ledger_sync.db.models import Transaction, TransactionType
+
+
+def _to_decimal(amount: float | str | Decimal) -> Decimal:
+    """Safely convert a transaction amount to Decimal."""
+    if isinstance(amount, Decimal):
+        return amount
+    return Decimal(str(amount))
+
+
+def calculate_totals(transactions: list[Transaction]) -> dict[str, float]:
+    """Calculate total income and expenses."""
+    total_income = sum(
+        (_to_decimal(t.amount) for t in transactions if t.type == TransactionType.INCOME),
+        Decimal(0),
+    )
+    total_expenses = sum(
+        (_to_decimal(t.amount) for t in transactions if t.type == TransactionType.EXPENSE),
+        Decimal(0),
+    )
+    return {
+        "total_income": float(total_income),
+        "total_expenses": float(total_expenses),
+        "net_change": float(total_income - total_expenses),
+    }
+
+
+def calculate_savings_rate(total_income: float, total_expenses: float) -> float:
+    """Calculate savings rate as percentage (0-100)."""
+    if total_income == 0:
+        return 0.0
+    return ((total_income - total_expenses) / total_income) * 100
+
+
+def calculate_daily_spending_rate(transactions: list[Transaction]) -> float:
+    """Calculate average daily spending."""
+    expenses = [t for t in transactions if t.type == TransactionType.EXPENSE]
+    if not expenses:
+        return 0.0
+
+    dates = [t.date for t in expenses]
+    days_span = (max(dates) - min(dates)).days + 1
+
+    total_spent = sum((_to_decimal(t.amount) for t in expenses), Decimal(0))
+    return float(total_spent / days_span) if days_span > 0 else 0.0
+
+
+def calculate_monthly_burn_rate(transactions: list[Transaction]) -> float:
+    """Calculate average monthly spending."""
+    expenses = [t for t in transactions if t.type == TransactionType.EXPENSE]
+    if not expenses:
+        return 0.0
+
+    dates = [t.date for t in expenses]
+    min_date, max_date = min(dates), max(dates)
+    months_span = max(
+        (max_date.year - min_date.year) * 12 + (max_date.month - min_date.month) + 1, 1
+    )
+
+    total_spent = sum((_to_decimal(t.amount) for t in expenses), Decimal(0))
+    return float(total_spent / months_span) if months_span > 0 else 0.0
+
+
+def group_by_month(transactions: list[Transaction]) -> dict[str, dict[str, float]]:
+    """Group transactions by month with income/expense breakdown."""
+    monthly_data: dict[str, dict[str, Decimal]] = defaultdict(
+        lambda: {"income": Decimal(0), "expenses": Decimal(0)},
+    )
+    for t in transactions:
+        month_key = t.date.strftime("%Y-%m")
+        if t.type == TransactionType.INCOME:
+            monthly_data[month_key]["income"] += _to_decimal(t.amount)
+        elif t.type == TransactionType.EXPENSE:
+            monthly_data[month_key]["expenses"] += _to_decimal(t.amount)
+
+    return {
+        k: {"income": float(v["income"]), "expenses": float(v["expenses"])}
+        for k, v in monthly_data.items()
+    }
+
+
+def group_by_category(transactions: list[Transaction]) -> dict[str, float]:
+    """Group expense transactions by category."""
+    category_totals: dict[str, Decimal] = defaultdict(Decimal)
+    for t in transactions:
+        if t.type == TransactionType.EXPENSE:
+            category_totals[t.category] += _to_decimal(t.amount)
+    return {k: float(v) for k, v in category_totals.items()}
+
+
+def group_by_account(transactions: list[Transaction]) -> dict[str, float]:
+    """Group transactions by account and calculate net balance."""
+    account_totals: dict[str, Decimal] = defaultdict(Decimal)
+    for t in transactions:
+        amount = _to_decimal(t.amount)
+        if t.type == TransactionType.INCOME:
+            account_totals[t.account] += amount
+        elif t.type == TransactionType.EXPENSE:
+            account_totals[t.account] -= amount
+        elif t.type == TransactionType.TRANSFER:
+            if t.from_account:
+                account_totals[t.from_account] -= amount
+            if t.to_account:
+                account_totals[t.to_account] += amount
+    return {k: float(v) for k, v in account_totals.items()}
+
+
+def is_measurable_consistency(monthly_expenses: list[float]) -> bool:
+    """Whether ``calculate_consistency_score`` can return a real measurement.
+
+    A coefficient of variation needs at least two observations and a non-zero
+    mean. Outside those preconditions the score function returns a flat ``100.0``
+    that LOOKS like the best possible result -- "perfectly consistent spending"
+    off one month of history, or off a ledger with no expenses at all.
+
+    Callers that publish the score to a user must gate on this first. It lives
+    beside the score rather than in each caller so the two cannot drift: the
+    insight generators already abstain (``insight_generators.spending_insights``,
+    ``insight_rules.MIN_MONTHS_FOR_VOLATILITY``) and this makes the same
+    precondition callable instead of re-derived.
+    """
+    return len(monthly_expenses) > 1 and mean(monthly_expenses) != 0
+
+
+def calculate_consistency_score(monthly_expenses: list[float]) -> float:
+    """Calculate spending consistency score (0-100). Higher = more consistent.
+
+    Returns a flat ``100.0`` when a coefficient of variation is not defined
+    (fewer than two months, or a zero mean). That is a SENTINEL, not a score --
+    gate on ``is_measurable_consistency`` before showing it to anyone.
+    """
+    if not is_measurable_consistency(monthly_expenses):
+        return 100.0
+    cv = (pstdev(monthly_expenses) / mean(monthly_expenses)) * 100
+    return max(0.0, 100.0 - cv)
+
+
+def calculate_lifestyle_inflation(transactions: list[Transaction]) -> float:
+    """Calculate lifestyle inflation: first 3 months vs last 3 months spending.
+
+    Each window's average is its total divided by the number of DISTINCT months
+    it actually contains -- not a hardcoded 3. With sparse early history (e.g. a
+    couple of tiny test rows in the first calendar month), dividing by 3 yields a
+    near-zero baseline that explodes the percentage to nonsense (a real run
+    produced 61,000%+). We also require each window to span the full 3 months and
+    a non-trivial baseline, otherwise the comparison is meaningless -> return 0.
+    """
+    expenses = sorted(
+        (t for t in transactions if t.type == TransactionType.EXPENSE),
+        key=lambda t: t.date,
+    )
+    if len(expenses) < 6:
+        return 0.0
+
+    first_date = expenses[0].date
+    first_3_months = [
+        t
+        for t in expenses
+        if (t.date.year - first_date.year) * 12 + (t.date.month - first_date.month) < 3
+    ]
+
+    last_date = expenses[-1].date
+    last_3_months = [
+        t
+        for t in expenses
+        if (last_date.year - t.date.year) * 12 + (last_date.month - t.date.month) < 3
+    ]
+
+    if not first_3_months or not last_3_months:
+        return 0.0
+
+    def _distinct_months(txns: list[Transaction]) -> int:
+        return len({(t.date.year, t.date.month) for t in txns})
+
+    first_months = _distinct_months(first_3_months)
+    last_months = _distinct_months(last_3_months)
+    # Both windows must actually cover 3 months; a 1-2 month early window is not
+    # a comparable baseline (it was the source of the runaway percentage).
+    if first_months < 3 or last_months < 3:
+        return 0.0
+
+    first_total = sum((_to_decimal(t.amount) for t in first_3_months), Decimal(0))
+    last_total = sum((_to_decimal(t.amount) for t in last_3_months), Decimal(0))
+    avg_first = float(first_total / first_months)
+    avg_last = float(last_total / last_months)
+
+    # Guard a degenerate baseline: a near-zero first-window average turns any
+    # later spend into a meaningless thousands-of-percent figure.
+    if avg_first < 1:
+        return 0.0
+    return ((avg_last - avg_first) / avg_first) * 100
+
+
+def calculate_category_concentration(category_totals: dict[str, float]) -> float:
+    """Calculate top category concentration percentage."""
+    if not category_totals:
+        return 0.0
+    total = sum(category_totals.values())
+    if total == 0:
+        return 0.0
+    return (max(category_totals.values()) / total) * 100
+
+
+def calculate_spending_velocity(
+    transactions: list[Transaction],
+    recent_days: int = 30,
+) -> dict[str, float]:
+    """Calculate spending velocity: recent vs historical daily spending."""
+    expenses = [t for t in transactions if t.type == TransactionType.EXPENSE]
+    if not expenses:
+        return {"recent_daily": 0.0, "historical_daily": 0.0, "velocity_ratio": 0.0}
+
+    today = max(t.date for t in expenses)
+    # -1 so the inclusive window (t.date >= cutoff) spans exactly recent_days
+    # calendar days, matching the divisor below and the historical branch's
+    # inclusive +1 span convention.
+    recent_cutoff = today - timedelta(days=recent_days - 1)
+
+    recent_expenses = [t for t in expenses if t.date >= recent_cutoff]
+    historical_expenses = [t for t in expenses if t.date < recent_cutoff]
+
+    recent_total = sum((_to_decimal(t.amount) for t in recent_expenses), Decimal(0))
+    recent_daily = float(recent_total / recent_days) if recent_days > 0 else 0.0
+
+    historical_daily = 0.0
+    if historical_expenses:
+        hist_dates = [t.date for t in historical_expenses]
+        hist_days = (max(hist_dates) - min(hist_dates)).days + 1
+        hist_total = sum((_to_decimal(t.amount) for t in historical_expenses), Decimal(0))
+        historical_daily = float(hist_total / hist_days) if hist_days > 0 else 0.0
+
+    velocity_ratio = (recent_daily / historical_daily) if historical_daily > 0 else 0.0
+    return {
+        "recent_daily": recent_daily,
+        "historical_daily": historical_daily,
+        "velocity_ratio": velocity_ratio,
+    }
+
+
+def find_best_worst_months(monthly_data: dict[str, dict[str, float]]) -> dict[str, Any]:
+    """Find best and worst months by surplus.
+
+    ``surplus`` nets off ``capital_losses`` when the caller supplies it (the SQL
+    path in ``analytics_helpers`` does; the in-memory ``group_by_month`` reports
+    a constant 0). A classified realised loss is out of ``expenses`` but the
+    cash still left, so a loss month that is genuinely the user's worst must not
+    rank as their best simply because the loss was relabelled.
+    """
+    if not monthly_data:
+        return {"best_month": None, "worst_month": None}
+
+    def _to_entry(month: str, data: dict[str, float]) -> dict[str, Any]:
+        return {
+            "month": month,
+            "income": data["income"],
+            "expenses": data["expenses"],
+            "surplus": data["income"] - data["expenses"] - data.get("capital_losses", 0.0),
+        }
+
+    entries = [_to_entry(m, d) for m, d in monthly_data.items()]
+    return {
+        "best_month": max(entries, key=lambda e: e["surplus"]),
+        "worst_month": min(entries, key=lambda e: e["surplus"]),
+    }
+
+
+def calculate_convenience_spending(transactions: list[Transaction]) -> dict[str, float]:
+    """Calculate convenience/discretionary spending metrics.
+
+    Matches by substring against the category name because the normalizer
+    produces multi-word labels like 'Food & Dining' and 'Entertainment &
+    Recreations' -- an exact-lowercase equality check would never match
+    and this function would silently always return 0. Token list is
+    intentionally small; a user-overridable list is tracked as CLS-4b.
+    """
+    expenses = [t for t in transactions if t.type == TransactionType.EXPENSE]
+
+    convenience_tokens = (
+        "shopping",
+        "entertainment",
+        "dining",
+        "restaurant",
+        "movie",
+        "games",
+        "recreation",
+        "leisure",
+        "travel",
+        "subscription",
+    )
+
+    def _is_convenience(cat: str | None) -> bool:
+        if not cat:
+            return False
+        lower = cat.lower()
+        return any(token in lower for token in convenience_tokens)
+
+    convenience_spending = sum(
+        (_to_decimal(t.amount) for t in expenses if _is_convenience(t.category)),
+        Decimal(0),
+    )
+    total_spending = sum((_to_decimal(t.amount) for t in expenses), Decimal(0))
+
+    convenience_pct = (
+        float(convenience_spending / total_spending * 100) if total_spending > 0 else 0.0
+    )
+    return {
+        "convenience_amount": float(convenience_spending),
+        "total_amount": float(total_spending),
+        "convenience_pct": convenience_pct,
+    }

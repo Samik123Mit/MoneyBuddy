@@ -1,0 +1,312 @@
+/**
+ * User Preferences API Service
+ *
+ * Handles all user preferences CRUD operations including:
+ * - Fiscal year configuration
+ * - Essential vs discretionary categories
+ * - Investment account mappings
+ * - Income source categories
+ * - Budget defaults
+ * - Display/format preferences
+ * - Anomaly detection settings
+ * - Recurring transaction settings
+ */
+
+import { apiClient } from './client'
+import type { SalaryComponents, RsuGrant, GrowthAssumptions } from '@/types/salary'
+
+// Types
+export interface UserPreferences {
+  id: number
+
+  // 1. Fiscal Year
+  fiscal_year_start_month: number
+
+  // 2. Essential Categories
+  essential_categories: string[]
+
+  // 3. Investment Mappings
+  investment_account_mappings: Record<string, string>
+
+  // 4. Income Classification (by tax treatment)
+  taxable_income_categories: string[]
+  investment_returns_categories: string[]
+  non_taxable_income_categories: string[]
+  other_income_categories: string[]
+
+  // 5. Budget Defaults
+  default_budget_alert_threshold: number
+  auto_create_budgets: boolean
+  budget_rollover_enabled: boolean
+
+  // 6. Display Preferences
+  number_format: 'indian' | 'international'
+  currency_symbol: string
+  currency_symbol_position: 'before' | 'after'
+  default_time_range: string
+  display_currency: string
+
+  // 7. Anomaly Settings
+  anomaly_expense_threshold: number
+  anomaly_types_enabled: string[]
+  auto_dismiss_recurring_anomalies: boolean
+
+  // 8. Recurring Settings
+  recurring_min_confidence: number
+  recurring_auto_confirm_occurrences: number
+
+  // 9. Spending Rule Targets
+  needs_target_percent: number
+  wants_target_percent: number
+  savings_target_percent: number
+
+  // 10. Credit Card Limits
+  credit_card_limits: Record<string, number>
+
+  // 11. Earning Start Date
+  earning_start_date: string | null
+  use_earning_start_date: boolean
+
+  // 12. Fixed/Mandatory Monthly Expenses
+  fixed_expense_categories: string[] | string
+
+  // 13. Savings & Investment Targets
+  savings_goal_percent: number
+  monthly_investment_target: number
+
+  // 14. Payday Configuration
+  payday: number
+
+  // 15. Tax Regime Preference
+  preferred_tax_regime: string
+
+  // 16. Excluded Accounts
+  excluded_accounts: string[] | string
+
+  // 17. Notification Preferences
+  notify_budget_alerts: boolean
+  notify_anomalies: boolean
+  notify_upcoming_bills: boolean
+  notify_days_ahead: number
+
+  // 18. Tax display
+  show_tds_schedule: boolean
+
+  // 19. EPF withdrawal taxability
+  epf_withdrawal_taxable: boolean
+  epf_taxable_percent: number
+
+  // 20. Salary TDS treatment: are recorded salary amounts net of TDS (default)
+  // or gross (pre-tax)?
+  salary_is_net_of_tds: boolean
+
+  // Salary & Tax Projections
+  salary_structure: Record<string, SalaryComponents>
+  rsu_grants: RsuGrant[]
+  growth_assumptions: GrowthAssumptions
+
+  // AI Assistant
+  ai_provider: string | null
+  ai_model: string | null
+
+  // Metadata
+  created_at: string | null
+  updated_at: string | null
+}
+
+// Partial update type
+export type UserPreferencesUpdate = Partial<Omit<UserPreferences, 'id' | 'created_at' | 'updated_at'>>
+
+// Section-specific update types
+export interface FiscalYearConfig {
+  fiscal_year_start_month: number
+}
+
+export interface EssentialCategoriesConfig {
+  essential_categories: string[]
+}
+
+export interface InvestmentMappingsConfig {
+  investment_account_mappings: Record<string, string>
+}
+
+export interface IncomeSourcesConfig {
+  taxable_income_categories: string[]
+  investment_returns_categories: string[]
+  non_taxable_income_categories: string[]
+  other_income_categories: string[]
+}
+
+export interface BudgetDefaultsConfig {
+  default_budget_alert_threshold: number
+  auto_create_budgets: boolean
+  budget_rollover_enabled: boolean
+}
+
+export interface DisplayPreferencesConfig {
+  number_format: 'indian' | 'international'
+  currency_symbol: string
+  currency_symbol_position: 'before' | 'after'
+  default_time_range: string
+  display_currency: string
+}
+
+export interface AnomalySettingsConfig {
+  anomaly_expense_threshold: number
+  anomaly_types_enabled: string[]
+  auto_dismiss_recurring_anomalies: boolean
+}
+
+export interface RecurringSettingsConfig {
+  recurring_min_confidence: number
+  recurring_auto_confirm_occurrences: number
+}
+
+export interface SpendingRuleConfig {
+  needs_target_percent: number
+  wants_target_percent: number
+  savings_target_percent: number
+}
+
+export interface CreditCardLimitsConfig {
+  credit_card_limits: Record<string, number>
+}
+
+export interface EarningStartDateConfig {
+  earning_start_date: string | null
+  use_earning_start_date: boolean
+}
+
+export interface SalaryStructureConfig {
+  salary_structure: Record<string, SalaryComponents>
+}
+
+export interface RsuGrantsConfig {
+  rsu_grants: RsuGrant[]
+}
+
+export interface GrowthAssumptionsConfig {
+  growth_assumptions: GrowthAssumptions
+}
+
+/**
+ * `/api/exchange-rates`.
+ *
+ * Three response variants from one handler, distinguished by these flags:
+ *  - live fetch: `fetched_at` set, no flags
+ *  - stale cache (upstream fetch failed): `stale: true`, `fetched_at` from the
+ *    last successful fetch
+ *  - hardcoded fallback: `fallback: true`, `fetched_at: null`, and
+ *    `fallback_as_of` carrying the date the baked-in table was captured
+ *
+ * `fallback_as_of` was missing from this interface, so nothing read it and
+ * `useExchangeRate` stamped fallback rates with `new Date()` -- presenting a
+ * table that could be months old as "fetched just now". Verified against the
+ * handler on 2026-07-27.
+ */
+export interface ExchangeRatesResponse {
+  base: string
+  rates: Record<string, number>
+  fetched_at?: number | null
+  stale?: boolean
+  fallback?: boolean
+  /** ISO date (YYYY-MM-DD) the hardcoded table was captured. Only on fallback. */
+  fallback_as_of?: string
+  /** True when the response is a dated historical rate, not the latest. */
+  historical?: boolean
+  /**
+   * ISO date the rate was actually published. Precedes the requested date
+   * across a weekend or holiday. Only on historical responses.
+   */
+  as_of?: string
+  /** The date that was asked for. Only on historical responses. */
+  requested_date?: string
+}
+
+// Helper to create section-specific updaters
+function createSectionUpdater<T>(endpoint: string) {
+  return async (config: T): Promise<UserPreferences> => {
+    const response = await apiClient.put<UserPreferences>(`/api/preferences/${endpoint}`, config)
+    return response.data
+  }
+}
+
+// Service
+export const preferencesService = {
+  /**
+   * Get current user preferences
+   */
+  async getPreferences(): Promise<UserPreferences> {
+    const response = await apiClient.get<UserPreferences>('/api/preferences')
+    return response.data
+  },
+
+  /**
+   * Update user preferences (partial update supported)
+   */
+  async updatePreferences(updates: UserPreferencesUpdate): Promise<UserPreferences> {
+    const response = await apiClient.put<UserPreferences>('/api/preferences', updates)
+    return response.data
+  },
+
+  /**
+   * Reset all preferences to defaults
+   */
+  async resetPreferences(): Promise<UserPreferences> {
+    const response = await apiClient.post<UserPreferences>('/api/preferences/reset')
+    return response.data
+  },
+
+  // Section-specific endpoints for granular updates
+  updateFiscalYear: createSectionUpdater<FiscalYearConfig>('fiscal-year'),
+  updateEssentialCategories: createSectionUpdater<EssentialCategoriesConfig>('essential-categories'),
+  updateInvestmentMappings: createSectionUpdater<InvestmentMappingsConfig>('investment-mappings'),
+  updateIncomeSources: createSectionUpdater<IncomeSourcesConfig>('income-sources'),
+  updateBudgetDefaults: createSectionUpdater<BudgetDefaultsConfig>('budget-defaults'),
+  updateDisplayPreferences: createSectionUpdater<DisplayPreferencesConfig>('display'),
+  updateAnomalySettings: createSectionUpdater<AnomalySettingsConfig>('anomaly-settings'),
+  updateRecurringSettings: createSectionUpdater<RecurringSettingsConfig>('recurring-settings'),
+  updateSpendingRule: createSectionUpdater<SpendingRuleConfig>('spending-rule'),
+  updateCreditCardLimits: createSectionUpdater<CreditCardLimitsConfig>('credit-card-limits'),
+  updateEarningStartDate: createSectionUpdater<EarningStartDateConfig>('earning-start-date'),
+  updateSalaryStructure: createSectionUpdater<SalaryStructureConfig>('salary-structure'),
+  updateRsuGrants: createSectionUpdater<RsuGrantsConfig>('rsu-grants'),
+  updateGrowthAssumptions: createSectionUpdater<GrowthAssumptionsConfig>('growth-assumptions'),
+
+  async getStockPrice(
+    symbol: string,
+    onDate?: string,
+  ): Promise<{ symbol: string; price: number; currency: string; as_of: string | null }> {
+    const response = await apiClient.get<{
+      symbol: string
+      price: number
+      currency: string
+      as_of: string | null
+    }>(`/api/stock-price/${encodeURIComponent(symbol)}`, {
+      params: onDate ? { on_date: onDate } : undefined,
+    })
+    return response.data
+  },
+
+  /**
+   * Exchange rates for `base`, latest or as published on `onDate`.
+   *
+   * `onDate` exists so a historical value is converted at the FX rate that
+   * applied then. Converting an RSU vest-date stock price at today's rate mixed
+   * vintages and overstated the vested line by the FX drift since (measured 9%
+   * on a 2025-08-15 AMZN vest: USD/INR 87.46 then vs 95.34 on 2026-08-03).
+   */
+  async getExchangeRates(
+    base: string = 'INR',
+    onDate?: string,
+  ): Promise<ExchangeRatesResponse> {
+    // Generic on `get`, not just on the return type: without it `response.data`
+    // is `any`, so the declared shape was an unchecked assertion and a backend
+    // rename would have surfaced as `undefined` at the render site instead of
+    // an error here. Shape confirmed live on 2026-07-27 (29 currencies).
+    const response = await apiClient.get<ExchangeRatesResponse>('/api/exchange-rates', {
+      params: onDate ? { base, on_date: onDate } : { base },
+    })
+    return response.data
+  },
+}

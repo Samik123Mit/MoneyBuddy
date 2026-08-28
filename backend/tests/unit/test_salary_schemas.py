@@ -1,0 +1,194 @@
+"""Tests for salary, RSU, and growth assumption schemas."""
+
+from __future__ import annotations
+
+from datetime import date
+from decimal import Decimal
+
+import pytest
+from pydantic import ValidationError
+
+from ledger_sync.schemas.salary import (
+    GrowthAssumptions,
+    GrowthAssumptionsConfig,
+    RsuGrant,
+    RsuGrantsConfig,
+    RsuVesting,
+    SalaryComponents,
+    SalaryStructureConfig,
+)
+
+
+class TestSalaryComponents:
+    def test_defaults(self):
+        comp = SalaryComponents()
+        assert comp.base_salary_annual == Decimal(0)
+        assert comp.hra_annual is None
+        assert comp.bonus_annual == Decimal(0)
+        assert comp.epf_monthly == Decimal(3600)
+        assert comp.nps_monthly == Decimal(0)
+
+    def test_custom_values(self):
+        comp = SalaryComponents(
+            base_salary_annual=Decimal("80000"),
+            hra_annual=Decimal("32000"),
+            bonus_annual=Decimal("200000"),
+        )
+        assert comp.base_salary_annual == Decimal("80000")
+        assert comp.hra_annual == Decimal("32000")
+
+    def test_salary_structure_config(self):
+        config = SalaryStructureConfig(
+            salary_structure={
+                "2025-26": SalaryComponents(base_salary_annual=Decimal("80000")),
+            }
+        )
+        assert "2025-26" in config.salary_structure
+        assert config.salary_structure["2025-26"].base_salary_annual == Decimal("80000")
+
+
+class TestRsuGrant:
+    def test_valid_grant(self):
+        grant = RsuGrant(
+            id="grant-1",
+            stock_name="AMZN",
+            stock_price=Decimal("185.50"),
+            vestings=[RsuVesting(date=date(2026, 3, 15), quantity=25)],
+        )
+        assert grant.stock_name == "AMZN"
+        assert len(grant.vestings) == 1
+        assert grant.vestings[0].quantity == 25
+
+    def test_grant_requires_at_least_one_vesting(self):
+        stock_price = Decimal("185.50")
+        with pytest.raises(ValidationError):
+            RsuGrant(
+                id="grant-1",
+                stock_name="AMZN",
+                stock_price=stock_price,
+                vestings=[],
+            )
+
+    def test_vesting_quantity_must_be_positive(self):
+        vesting_date = date(2026, 3, 15)
+        with pytest.raises(ValidationError):
+            RsuVesting(date=vesting_date, quantity=0)
+
+    def test_vesting_price_at_vest_defaults_to_none(self):
+        vesting = RsuVesting(date=date(2026, 3, 15), quantity=25)
+        assert vesting.price_at_vest is None
+
+    def test_vesting_price_at_vest_accepts_positive(self):
+        vesting = RsuVesting(date=date(2025, 8, 15), quantity=6, price_at_vest=Decimal("21500.75"))
+        assert vesting.price_at_vest == Decimal("21500.75")
+
+    def test_vesting_price_at_vest_rejects_zero(self):
+        vest_date = date(2025, 8, 15)
+        zero = Decimal("0")
+        with pytest.raises(ValidationError):
+            RsuVesting(date=vest_date, quantity=6, price_at_vest=zero)
+
+    def test_net_quantity_defaults_to_none(self):
+        """Absent means "no withholding recorded", NOT "equal to the gross vest"."""
+        vesting = RsuVesting(date=date(2026, 3, 15), quantity=25)
+        assert vesting.net_quantity is None
+
+    def test_net_quantity_accepts_a_fraction(self):
+        """Sell-to-cover credits fractional residuals: 6 vested, 4.127 received."""
+        vesting = RsuVesting(date=date(2025, 8, 15), quantity=6, net_quantity=Decimal("4.127"))
+        assert vesting.net_quantity == Decimal("4.127")
+
+    def test_net_quantity_may_equal_the_gross_vest(self):
+        """Legal: nothing was withheld on that vest."""
+        vesting = RsuVesting(date=date(2025, 8, 15), quantity=6, net_quantity=Decimal("6"))
+        assert vesting.net_quantity == Decimal("6")
+
+    def test_net_quantity_cannot_exceed_the_gross_vest(self):
+        """Withholding only reduces the count, so net > gross means transposed fields."""
+        vest_date = date(2025, 8, 15)
+        over_gross = Decimal("6.001")
+        with pytest.raises(ValidationError, match="cannot exceed"):
+            RsuVesting(date=vest_date, quantity=6, net_quantity=over_gross)
+
+    def test_net_quantity_rejects_zero(self):
+        vest_date = date(2025, 8, 15)
+        zero = Decimal("0")
+        with pytest.raises(ValidationError):
+            RsuVesting(date=vest_date, quantity=6, net_quantity=zero)
+
+    def test_stock_price_must_be_positive(self):
+        stock_price = Decimal("0")
+        vesting = RsuVesting(date=date(2026, 3, 15), quantity=25)
+        with pytest.raises(ValidationError):
+            RsuGrant(
+                id="grant-1",
+                stock_name="AMZN",
+                stock_price=stock_price,
+                vestings=[vesting],
+            )
+
+    def test_stock_name_must_be_nonempty(self):
+        stock_price = Decimal("100")
+        vesting = RsuVesting(date=date(2026, 3, 15), quantity=25)
+        with pytest.raises(ValidationError):
+            RsuGrant(
+                id="grant-1",
+                stock_name="",
+                stock_price=stock_price,
+                vestings=[vesting],
+            )
+
+    def test_optional_fields(self):
+        grant = RsuGrant(
+            id="grant-1",
+            stock_name="GOOG",
+            stock_price=Decimal("150"),
+            grant_date=date(2025, 1, 1),
+            notes="Joining grant",
+            vestings=[RsuVesting(date=date(2026, 1, 1), quantity=10)],
+        )
+        assert grant.grant_date == date(2025, 1, 1)
+        assert grant.notes == "Joining grant"
+
+    def test_rsu_grants_config(self):
+        config = RsuGrantsConfig(
+            rsu_grants=[
+                RsuGrant(
+                    id="g1",
+                    stock_name="AMZN",
+                    stock_price=Decimal("185"),
+                    vestings=[RsuVesting(date=date(2026, 3, 15), quantity=25)],
+                )
+            ]
+        )
+        assert len(config.rsu_grants) == 1
+
+
+class TestGrowthAssumptions:
+    def test_defaults(self):
+        ga = GrowthAssumptions()
+        assert ga.base_salary_growth_pct == 0
+        assert ga.bonus_growth_pct == 0
+        assert ga.epf_scales_with_base is True
+        assert ga.nps_growth_pct == 0
+        assert ga.stock_price_appreciation_pct == 0
+        assert ga.projection_years == 3
+
+    def test_projection_years_bounds(self):
+        ga = GrowthAssumptions(projection_years=5)
+        assert ga.projection_years == 5
+
+        with pytest.raises(ValidationError):
+            GrowthAssumptions(projection_years=0)
+
+        with pytest.raises(ValidationError):
+            GrowthAssumptions(projection_years=6)
+
+    def test_growth_assumptions_config(self):
+        config = GrowthAssumptionsConfig(
+            growth_assumptions=GrowthAssumptions(
+                base_salary_growth_pct=10,
+                projection_years=4,
+            )
+        )
+        assert config.growth_assumptions.base_salary_growth_pct == 10

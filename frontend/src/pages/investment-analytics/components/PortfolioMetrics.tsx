@@ -1,0 +1,133 @@
+import { motion } from 'motion/react'
+import { DollarSign, PieChart, Target, TrendingUp, Wallet } from 'lucide-react'
+
+import MetricCard from '@/components/shared/MetricCard'
+import { hexToRgba, rawColors } from '@/constants/colors'
+import { formatCurrency, formatPercent } from '@/lib/formatters'
+
+interface PortfolioMetricsProps {
+  totalInvestmentValue: number
+  investmentAccountsCount: number
+  netInvestmentPL: number
+  plPercent: number
+  /**
+   * Largest single holding by amount invested. Allocation mix is a cost-basis
+   * fact the statements DO support, unlike any rate of return.
+   */
+  topHolding: { name: string; value: number } | null
+  monthlyInvestmentTarget: number
+  currentMonthInvestment: number
+  targetProgress: number
+  isLoading: boolean
+}
+
+export function PortfolioMetrics(props: Readonly<PortfolioMetricsProps>) {
+  const {
+    totalInvestmentValue,
+    investmentAccountsCount,
+    netInvestmentPL,
+    plPercent,
+    topHolding,
+    monthlyInvestmentTarget,
+    currentMonthInvestment,
+    targetProgress,
+    isLoading,
+  } = props
+
+  const topHoldingShare =
+    topHolding && totalInvestmentValue > 0 ? (topHolding.value / totalInvestmentValue) * 100 : 0
+
+  return (
+    <div
+      className={`grid grid-cols-2 ${monthlyInvestmentTarget > 0 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 sm:gap-4 lg:gap-6`}
+    >
+      <MetricCard
+        title="Total Investment Value"
+        value={formatCurrency(totalInvestmentValue)}
+        subtitle="Net contributions (book value)"
+        icon={TrendingUp}
+        color="green"
+        isLoading={isLoading}
+      />
+      <MetricCard
+        title="Portfolio Assets"
+        value={investmentAccountsCount}
+        icon={Wallet}
+        color="blue"
+        isLoading={isLoading}
+      />
+      <MetricCard
+        title="Net Investment P&L"
+        value={`${netInvestmentPL >= 0 ? '+' : ''}${formatCurrency(netInvestmentPL)}`}
+        subtitle={`${plPercent >= 0 ? '+' : ''}${formatPercent(plPercent)} of portfolio`}
+        icon={DollarSign}
+        color={netInvestmentPL >= 0 ? 'green' : 'red'}
+        isLoading={isLoading}
+      />
+      {/* Was "Cashflow XIRR". Its terminal value was the very book value those
+          contributions produced, so the solved rate described the arithmetic and
+          not the portfolio -- it printed a confident -2.9% p.a. on real data.
+          A rate of return needs a market value; allocation mix does not, so show
+          concentration instead. CostBasisOnlyNotice on the page carries the why. */}
+      <MetricCard
+        title="Largest Holding"
+        value={topHolding ? formatCurrency(topHolding.value) : '-'}
+        subtitle={
+          topHolding
+            ? `${topHolding.name} - ${formatPercent(topHoldingShare)} of invested`
+            : 'No holdings yet'
+        }
+        icon={PieChart}
+        color="teal"
+        isLoading={isLoading}
+        titleInfo="Biggest single investment account by amount contributed, and its share of total invested"
+      />
+      {monthlyInvestmentTarget > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="relative col-span-2 lg:col-span-1 p-4 md:p-6 glass rounded-2xl overflow-hidden group border border-[var(--hairline-1)] border-t-[var(--hairline-3)] border-l-[var(--hairline-3)]"
+        >
+          <div
+            className="inline-flex p-3 rounded-2xl mb-4 bg-app-orange/15"
+            style={{ boxShadow: `0 8px 24px ${hexToRgba(rawColors.app.orange, 0.15)}` }}
+          >
+            <Target className="w-6 h-6 text-app-orange" />
+          </div>
+          <h3 className="text-kpi-label font-medium mb-1 text-muted-foreground">Monthly Target</h3>
+          <p className="text-kpi-value font-bold text-foreground">
+            {formatCurrency(monthlyInvestmentTarget)}
+          </p>
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-text-tertiary">
+                {formatCurrency(currentMonthInvestment)} invested
+              </span>
+              <span
+                className={
+                  targetProgress >= 100
+                    ? 'text-app-green font-medium'
+                    : 'text-app-orange font-medium'
+                }
+              >
+                {targetProgress.toFixed(0)}%
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-[var(--overlay-5)] overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{
+                  background: targetProgress >= 100 ? rawColors.app.green : rawColors.app.orange,
+                }}
+                initial={{ width: 0 }}
+                animate={{ width: `${targetProgress}%` }}
+                transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+              />
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  )
+}

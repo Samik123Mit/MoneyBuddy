@@ -1,0 +1,296 @@
+import { useMemo } from 'react'
+
+import { useQuery } from '@tanstack/react-query'
+import { Wallet, CreditCard, Upload } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import StandardPieChart from '@/components/analytics/StandardPieChart'
+import MonthlyFlowChart from '@/components/analytics/MonthlyFlowChart'
+
+import PieLegend from '@/components/shared/PieLegend'
+import { capPieSlices } from '@/components/ui/pieSlices'
+import { ROUTES } from '@/constants'
+import QuickInsights from '@/components/shared/QuickInsights'
+import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
+import AnalyticsTimeFilter from '@/components/shared/AnalyticsTimeFilter'
+import EmptyState from '@/components/shared/EmptyState'
+import PageErrorState from '@/components/shared/PageErrorState'
+import { FinancialHealthScore } from '@/components/analytics'
+import { formatCurrency, formatCurrencyShort } from '@/lib/formatters'
+import { PageContainer, PageHeader } from '@/components/ui'
+import { useDashboardMetrics } from '@/hooks/useDashboardMetrics'
+import { useAccountBalances } from '@/hooks/api/useAnalytics'
+import { computeAgeOfMoney, computeDaysOfBuffering, computeLiquidPosition } from '@/lib/ageOfMoneyCalculator'
+import { useRecurringTransactions } from '@/hooks/api/useAnalyticsV2'
+import { accountClassificationsService } from '@/services/api/accountClassifications'
+import { toMonthlyAmount } from '@/pages/subscription-tracker/helpers'
+
+export default function DashboardPage() {
+  const navigate = useNavigate()
+
+  const {
+    viewMode, setViewMode,
+    currentYear, setCurrentYear,
+    currentMonth, setCurrentMonth,
+    currentFY, setCurrentFY,
+    fiscalYearStartMonth,
+    dataDateRange, dateRange,
+    filteredTransactions, isLoading, isError, retry,
+    incomeBreakdown, cashbacksTotal,
+    incomeChartData,
+    expenseChartData,
+    monthlyFlow,
+    partialMonthLabel,
+    momChanges,
+  } = useDashboardMetrics()
+
+  // Fixed Commitments from active recurring.
+  //
+  // Commitments only, confirmed OR detected. Requiring is_confirmed read 0 --
+  // nothing in the product sets that flag, so a ledger full of real rent
+  // reported no fixed costs. Habit rows (the daily lunch) are excluded because
+  // they repeat without being owed.
+  const recurringQuery = useRecurringTransactions({
+    active_only: true,
+    min_confidence: 0,
+    pattern_kind: 'commitment',
+  })
+  const recurringItems = useMemo(() => recurringQuery.data ?? [], [recurringQuery.data])
+  const fixedCommitments = useMemo(
+    () => recurringItems.filter((r) => r.type === 'Expense'),
+    [recurringItems],
+  )
+  const fixedCommitmentsMonthly = useMemo(
+    () => fixedCommitments.reduce((sum, r) => sum + toMonthlyAmount(r.expected_amount, r.frequency), 0),
+    [fixedCommitments],
+  )
+  const fixedCount = fixedCommitments.length
+
+  // Age of Money & Days of Buffering
+  const ageOfMoney = useMemo(
+    () => filteredTransactions?.length ? computeAgeOfMoney(filteredTransactions) : null,
+    [filteredTransactions],
+  )
+  // Days of Buffering runs on LIQUID balances only (cash / bank / wallets).
+  // Feeding lifetime income-minus-expense here counted investments (PPF, MF,
+  // stocks) as spendable and inflated the runway (~754 days vs the real
+  // cash position on audit data). Balances come from account_balances and
+  // are folded by `computeLiquidPosition`, which owns the classification set,
+  // the parked-deposit exclusion, and the negative-balance-is-a-liability rule.
+  // Summing a bare total here instead re-inflated the runway to 150 days.
+  const balanceQuery = useAccountBalances()
+  const balanceData = balanceQuery.data
+  const classificationsQuery = useQuery({
+    queryKey: ['account-classifications'],
+    queryFn: () => accountClassificationsService.getAllClassifications(),
+    staleTime: Infinity,
+  })
+  const accountClassifications = classificationsQuery.data
+  const daysOfBuffering = useMemo(() => {
+    if (!filteredTransactions?.length || !balanceData?.accounts || !accountClassifications) {
+      return null
+    }
+    // Unclassified accounts are excluded rather than guessed -- counting an
+    // unlabeled brokerage as cash would silently re-inflate the runway.
+    const liquid = computeLiquidPosition(balanceData.accounts, accountClassifications)
+    return computeDaysOfBuffering(liquid, filteredTransactions)
+  }, [filteredTransactions, balanceData, accountClassifications])
+
+  const incomeTotal = useMemo(() => incomeChartData.reduce((sum, d) => sum + d.value, 0), [incomeChartData])
+  const expenseTotal = useMemo(() => expenseChartData.reduce((sum, d) => sum + d.value, 0), [expenseChartData])
+
+  // The legend is built from the SAME capped array the pie renders, not a
+  // hand-mirrored slice count -- that drifted the moment the pie's default cap
+  // changed (7 rows listed against 6 wedges, row 7 wearing a color the pie never
+  // painted). One row per wedge, including the folded "Other" rollup, so the
+  // rows also add up to the Total below.
+  const incomeSlices = useMemo(() => capPieSlices(incomeChartData), [incomeChartData])
+  const expenseSlices = useMemo(() => capPieSlices(expenseChartData), [expenseChartData])
+
+  const pageLoading =
+    isLoading ||
+    recurringQuery.isLoading ||
+    balanceQuery.isLoading ||
+    classificationsQuery.isLoading
+  const pageError =
+    isError ||
+    recurringQuery.isError ||
+    balanceQuery.isError ||
+    classificationsQuery.isError
+  const retryDashboard = () => {
+    retry()
+    void recurringQuery.refetch()
+    void balanceQuery.refetch()
+    void classificationsQuery.refetch()
+  }
+
+  if (pageLoading) return <PageSkeleton />
+
+  if (pageError) {
+    return (
+      <PageErrorState
+        title="Dashboard"
+        subtitle="Monitor cash flow, financial health, and account activity."
+        onRetry={retryDashboard}
+      />
+    )
+  }
+
+  // First-run: no transactions at all. Show a single full-page prompt to upload
+  // instead of a grid of empty widgets.
+  if (!filteredTransactions?.length) {
+    return (
+      <PageContainer>
+        <PageHeader title="Dashboard" subtitle="Monitor cash flow, financial health, and account activity." />
+        <EmptyState
+          icon={Upload}
+          title="No transactions yet"
+          description="Upload a bank statement to unlock your spending breakdowns, insights, and health score."
+          actionLabel="Upload Data"
+          actionHref={ROUTES.UPLOAD}
+          variant="card"
+        />
+      </PageContainer>
+    )
+  }
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Monitor cash flow, financial health, and account activity."
+        action={
+          <AnalyticsTimeFilter
+            viewMode={viewMode} onViewModeChange={setViewMode}
+            currentYear={currentYear} currentMonth={currentMonth} currentFY={currentFY}
+            onYearChange={setCurrentYear} onMonthChange={setCurrentMonth} onFYChange={setCurrentFY}
+            minDate={dataDateRange.minDate} maxDate={dataDateRange.maxDate}
+            fiscalYearStartMonth={fiscalYearStartMonth}
+          />
+        }
+      />
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Ledger snapshot</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Key movements and operating signals for the selected period.
+          </p>
+        </div>
+        <QuickInsights
+          dateRange={dateRange}
+          ageOfMoney={ageOfMoney}
+          daysOfBuffering={daysOfBuffering}
+          fixedCommitmentsMonthly={fixedCommitmentsMonthly}
+          fixedCount={fixedCount}
+          momChanges={momChanges}
+        />
+      </section>
+
+      {/* Financial Health Score */}
+      <FinancialHealthScore transactions={filteredTransactions} />
+
+      {/* Income vs spending over time -- direction, which the pies below cannot show */}
+      <MonthlyFlowChart data={monthlyFlow} partialMonthLabel={partialMonthLabel} />
+
+      {/* Income Sources & Expense Sources */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        {/* Income Sources */}
+        <section className="ledger-panel p-4 sm:p-5">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-md bg-app-green/10">
+              <Wallet className="size-3.5 text-app-green" />
+            </span>
+            <span>Income Sources</span>
+          </h2>
+          {incomeChartData.length > 0 ? (
+            <div className="space-y-4">
+              <StandardPieChart
+                data={incomeChartData}
+                height={180}
+                showLegend={false}
+                ariaLabel="Income sources pie chart"
+                centerValue={formatCurrencyShort(incomeTotal)}
+                centerLabel="Total"
+                // `void navigate(...)`: react-router types it `void |
+                // Promise<void>`, and these props expect a void return. Same
+                // convention as CommandPalette and ProfileModal.
+                onSliceClick={(name) => {
+                  void navigate(`${ROUTES.INCOME_ANALYSIS}?category=${encodeURIComponent(name)}`)
+                }}
+              />
+              <div className="space-y-1">
+                <PieLegend
+                  slices={incomeSlices}
+                  focusRingClass="focus-visible:ring-app-green/40"
+                  onSelect={(name) => {
+                    void navigate(`${ROUTES.INCOME_ANALYSIS}?category=${encodeURIComponent(name)}`)
+                  }}
+                />
+                {incomeBreakdown && (
+                  <div className="pt-2 mt-2 border-t border-border space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Total</span>
+                      <span className="text-sm font-bold text-app-green">{formatCurrency(Object.values(incomeBreakdown).reduce((a, b) => a + b, 0))}</span>
+                    </div>
+                    {cashbacksTotal > 0 && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-app-teal">Cashbacks Earned</span>
+                        <span className="text-app-teal font-medium">{formatCurrency(cashbacksTotal)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <EmptyState icon={Wallet} title="No income data available" description="Configure income categories in Settings." actionLabel="Go to Settings" actionHref="/settings" variant="compact" />
+          )}
+        </section>
+
+        {/* Expense Sources */}
+        <section className="ledger-panel p-4 sm:p-5">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-md bg-app-red/10">
+              <CreditCard className="size-3.5 text-app-red" />
+            </span>
+            <span>Expense Sources</span>
+          </h2>
+          {expenseChartData.length > 0 ? (
+            <div className="space-y-4">
+              <StandardPieChart
+                data={expenseChartData}
+                height={180}
+                showLegend={false}
+                ariaLabel="Expense sources pie chart"
+                centerValue={formatCurrencyShort(expenseTotal)}
+                centerLabel="Total"
+                onSliceClick={(name) => {
+                  void navigate(`${ROUTES.SPENDING_ANALYSIS}?category=${encodeURIComponent(name)}`)
+                }}
+              />
+              <div className="space-y-1">
+                <PieLegend
+                  slices={expenseSlices}
+                  focusRingClass="focus-visible:ring-app-red/40"
+                  onSelect={(name) => {
+                    void navigate(`${ROUTES.SPENDING_ANALYSIS}?category=${encodeURIComponent(name)}`)
+                  }}
+                />
+                <div className="pt-2 mt-2 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Total</span>
+                    <span className="text-sm font-bold text-app-red">{formatCurrency(expenseTotal)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <EmptyState icon={CreditCard} title="No expense data available" description="Upload transactions to see your expense breakdown." actionLabel="Upload Data" actionHref="/upload" variant="compact" />
+          )}
+        </section>
+      </div>
+
+      <div className="ledger-ruler" aria-hidden="true" />
+    </PageContainer>
+  )
+}

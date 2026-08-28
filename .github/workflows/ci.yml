@@ -1,0 +1,72 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Frontend: lint -> build (tsc -b) -> test, via the shared reusable workflow.
+  frontend:
+    uses: Sagargupta16/shared-workflows/.github/workflows/node-ci.yml@main
+    with:
+      working-directory: frontend
+
+  # Backend: real gating (ruff + mypy + pytest). The shared python-ci workflow
+  # swallows failures with `|| true`, so we run an inline job that actually
+  # fails the build on lint/type/test errors.
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install dependencies
+        # --group dev pulls ruff/mypy/pytest (declared in [dependency-groups],
+        # PEP 735) -- they are not extras, so --all-extras alone misses them.
+        run: uv sync --locked --no-build --no-install-project --all-extras --group dev
+
+      # Lint the whole backend dir, matching `pnpm run lint:backend`, so CI can
+      # never pass on a tree where the documented local command fails.
+      - name: Ruff lint
+        run: uv run --no-sync --locked --no-build ruff check .
+
+      - name: Ruff format check
+        run: uv run --no-sync --locked --no-build ruff format --check .
+
+      - name: Mypy
+        run: uv run --no-sync --locked --no-build mypy src/
+
+      - name: Pytest
+        run: uv run --no-sync --locked --no-build pytest tests/ -q
+
+      # Prove a fresh environment can build its database from migrations alone.
+      # Nothing else covers this: migrate.yml only applies new revisions to a
+      # Neon database that already carries the whole history, and init_db()'s
+      # create_all() masks migration gaps at runtime. A broken chain here means
+      # a new contributor cannot bootstrap at all.
+      - name: Alembic upgrade from an empty database
+        env:
+          LEDGER_SYNC_DATABASE_URL: sqlite:///./ci_migration_check.db
+          LEDGER_SYNC_JWT_SECRET_KEY: ci-secret-key-at-least-32-characters-long
+        run: uv run --no-sync --locked --no-build alembic upgrade head
+
+  security:
+    uses: Sagargupta16/shared-workflows/.github/workflows/security-scan.yml@main
+    permissions:
+      contents: read
+      security-events: write

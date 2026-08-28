@@ -1,0 +1,151 @@
+/**
+ * Income Classification section - classify income subcategories by type.
+ */
+
+import type { Dispatch, SetStateAction } from 'react'
+import { DollarSign } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
+import type { IncomeClassificationAudit as Audit } from '../helpers'
+import type { LocalPrefs, IncomeClassificationType } from '../types'
+import { INCOME_CLASSIFICATION_TYPES, INCOME_CLASSIFICATION_KEY_MAP } from '../types'
+import { Section } from '../sectionPrimitives'
+import IncomeClassificationAudit from './IncomeClassificationAudit'
+
+interface Props {
+  index: number
+  allIncomeCategories: Record<string, string[]>
+  localPrefs: LocalPrefs
+  incomeAudit: Audit
+  applyIncomeSuggestions: () => void
+  removeIncomeKey: (key: string) => void
+  setLocalPrefs: Dispatch<SetStateAction<LocalPrefs | null>>
+  setHasChanges: (v: boolean) => void
+  defaultCollapsed?: boolean
+}
+
+function getClassification(
+  localPrefs: LocalPrefs,
+  item: string,
+): IncomeClassificationType | 'unclassified' {
+  for (const classType of INCOME_CLASSIFICATION_TYPES) {
+    const key = INCOME_CLASSIFICATION_KEY_MAP[classType.value]
+    if (localPrefs[key].includes(item)) {
+      return classType.value
+    }
+  }
+  return 'unclassified'
+}
+
+export default function IncomeClassificationSection({
+  index,
+  allIncomeCategories,
+  localPrefs,
+  incomeAudit,
+  applyIncomeSuggestions,
+  removeIncomeKey,
+  setLocalPrefs,
+  setHasChanges,
+  defaultCollapsed = true,
+}: Readonly<Props>) {
+  const handleClassify = (item: string, newType: IncomeClassificationType | 'unclassified') => {
+    const updated = { ...localPrefs }
+    for (const classType of INCOME_CLASSIFICATION_TYPES) {
+      const key = INCOME_CLASSIFICATION_KEY_MAP[classType.value]
+      updated[key] = updated[key].filter((c: string) => c !== item)
+    }
+    if (newType !== 'unclassified') {
+      const targetKey = INCOME_CLASSIFICATION_KEY_MAP[newType]
+      updated[targetKey] = [...updated[targetKey], item]
+    }
+    setLocalPrefs(updated)
+    setHasChanges(true)
+  }
+
+  return (
+    <Section
+      index={index}
+      icon={DollarSign}
+      title="Income Classification"
+      description="Classify income subcategories by type for tax and analytics"
+      defaultCollapsed={defaultCollapsed}
+    >
+      {Object.keys(allIncomeCategories).length === 0 ? (
+        <EmptyState
+          variant="compact"
+          icon={EmptyState.icons.upload}
+          title="No income categories yet"
+          description="Upload your bank statements to classify income for tax and analytics."
+          actionLabel="Upload transactions"
+          actionHref="/upload"
+        />
+      ) : (
+        <div className="space-y-4">
+          <IncomeClassificationAudit
+            audit={incomeAudit}
+            onClassify={handleClassify}
+            onApplySuggestions={applyIncomeSuggestions}
+            onRemoveKey={removeIncomeKey}
+          />
+
+          {Object.entries(allIncomeCategories).map(([parentCat, subs]) => (
+            <div key={parentCat}>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                {parentCat}
+              </h4>
+              <div className="space-y-1">
+                {subs.map((sub) => {
+                  const fullKey = `${parentCat}::${sub}`
+                  const currentType = getClassification(localPrefs, fullKey)
+
+                  return (
+                    <div
+                      key={fullKey}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--overlay-2)] transition-colors"
+                    >
+                       <span className="text-sm text-foreground flex-1 min-w-0 truncate">{sub}</span>
+                       <select
+                         id={`income-classification-${encodeURIComponent(fullKey)}`}
+                         aria-label={`Income classification for ${sub}`}
+                        value={currentType}
+                        onChange={(e) =>
+                          handleClassify(
+                            fullKey,
+                            e.target.value as IncomeClassificationType | 'unclassified',
+                          )
+                        }
+                         className="ledger-control min-h-11 w-40 rounded-lg border border-border px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none sm:min-h-10 sm:w-44"
+                      >
+                        <option value="unclassified" className="bg-background">
+                          Unclassified
+                        </option>
+                        {INCOME_CLASSIFICATION_TYPES.map((t) => (
+                          <option key={t.value} value={t.value} className="bg-background">
+                            {t.label.replace(/^[^\s]+\s/, '')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Summary */}
+          <div className="flex flex-wrap gap-3 pt-1 text-xs text-muted-foreground">
+            {INCOME_CLASSIFICATION_TYPES.map((t) => {
+              const key = INCOME_CLASSIFICATION_KEY_MAP[t.value]
+              const count = localPrefs[key].length
+              return (
+                <span key={t.value}>
+                  {count} {t.label.replace(/^[^\s]+\s/, '').toLowerCase()}
+                </span>
+              )
+            })}
+            <span>{incomeAudit.unclassified.length} unclassified</span>
+          </div>
+        </div>
+      )}
+    </Section>
+  )
+}
