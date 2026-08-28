@@ -20,7 +20,6 @@ from moneybuddy.db._models._constants import CASCADE_ALL_DELETE_ORPHAN, USER_FK
 from moneybuddy.db.base import Base
 
 if TYPE_CHECKING:
-    from moneybuddy.db._models.provider_usage import ProviderUsageLog
     from moneybuddy.db._models.organization import (
         CategorizationRule,
         SavedFilterView,
@@ -31,6 +30,7 @@ if TYPE_CHECKING:
         Budget,
         FinancialGoal,
     )
+    from moneybuddy.db._models.provider_usage import ProviderUsageLog
     from moneybuddy.db._models.transactions import ImportLog, Transaction
 
 

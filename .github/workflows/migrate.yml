@@ -12,9 +12,10 @@ on:
 
 jobs:
   migrate:
-    if: ${{ secrets.MONEYBUDDY_DATABASE_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      MONEYBUDDY_DATABASE_URL: ${{ secrets.MONEYBUDDY_DATABASE_URL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -28,9 +29,13 @@ jobs:
         working-directory: backend
         run: uv sync --locked --no-build --no-install-project --no-group dev
 
+      - name: Skip when database secret is not configured
+        if: ${{ env.MONEYBUDDY_DATABASE_URL == '' }}
+        run: echo "MONEYBUDDY_DATABASE_URL is not configured; skipping migrations."
+
       - name: Run Alembic migrations
+        if: ${{ env.MONEYBUDDY_DATABASE_URL != '' }}
         working-directory: backend
         env:
-          MONEYBUDDY_DATABASE_URL: ${{ secrets.MONEYBUDDY_DATABASE_URL }}
           PYTHONPATH: src
         run: uv run --no-sync --locked --no-build alembic upgrade head

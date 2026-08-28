@@ -35,7 +35,6 @@ from moneybuddy.db._models.organization import (
     SavedFilterView,
     TransactionTag,
 )
-from moneybuddy.db._models.provider_usage import ProviderUsageLog
 from moneybuddy.db._models.planning import (
     Anomaly,
     Budget,
@@ -43,6 +42,7 @@ from moneybuddy.db._models.planning import (
     RecurringTransaction,
     ScheduledTransaction,
 )
+from moneybuddy.db._models.provider_usage import ProviderUsageLog
 from moneybuddy.db._models.transactions import (
     AccountClassification,
     ColumnMappingLog,
