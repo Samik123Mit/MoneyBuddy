@@ -11,7 +11,7 @@ concurrency:
 jobs:
   # Frontend: lint -> build (tsc -b) -> test, via the shared reusable workflow.
   frontend:
-    uses: Samik123Mit/shared-workflows/.github/workflows/node-ci.yml@main
+    uses: Sagargupta16/shared-workflows/.github/workflows/node-ci.yml@main
     with:
       working-directory: frontend
 
@@ -66,7 +66,7 @@ jobs:
         run: uv run --no-sync --locked --no-build alembic upgrade head
 
   security:
-    uses: Samik123Mit/shared-workflows/.github/workflows/security-scan.yml@main
+    uses: Sagargupta16/shared-workflows/.github/workflows/security-scan.yml@main
     permissions:
       contents: read
       security-events: write

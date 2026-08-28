@@ -12,6 +12,7 @@ on:
 
 jobs:
   migrate:
+    if: ${{ secrets.MONEYBUDDY_DATABASE_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
