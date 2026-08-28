@@ -19,9 +19,9 @@ import { describe, expect, it } from 'vitest'
  *    weight that documented a contract the endpoint did not have.
  *
  * `model_config = {"extra": "forbid"}` on the live endpoints is not an option:
- * the already-deployed GitHub Pages frontend sends extra params today and would
- * start getting 422s from a backend it did not ship with. So the guard lives
- * here, in the test suite, where a re-added param fails before it deploys.
+ * older clients can still send extra params during rollbacks or when local dev
+ * points at a stale backend. So the guard lives here, in the test suite, where
+ * a re-added param fails before it deploys.
  *
  * The frontend half is MECHANICAL -- the params are parsed out of
  * `services/api/analytics.ts` itself, so this cannot fall behind the client. The

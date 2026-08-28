@@ -3,18 +3,35 @@
 ## Production Topology
 
 ```text
-GitHub Pages
-  -> FastAPI on Vercel
+Vercel
+  -> Vite frontend at /
+  -> FastAPI backend at /api and /health
   -> PostgreSQL
 ```
 
-## Deployment Sources
+## Vercel Layout
 
-- Frontend build: `.github/workflows/deploy-frontend.yml`
-- Backend entry point: `backend/api/index.py`
-- Backend routing: `backend/vercel.json`
+- Project config: `vercel.json`
+- Frontend service root: `frontend/`
+- Backend service root: `backend/`
+- Backend ASGI app: `backend/src/moneybuddy/api/main.py`
 - Database migrations: `.github/workflows/migrate.yml`
-- Health ping: `.github/workflows/keepalive.yml`
+
+Top-level Vercel rewrites send `/api/*`, `/health`, and `/health/db` to the
+FastAPI service, and everything else to the frontend service. The frontend then
+uses an SPA rewrite to serve `index.html` for deep links such as `/dashboard`
+and `/transactions`.
+
+## One-click import
+
+Use the repository import flow in Vercel or the deploy button:
+
+```text
+https://vercel.com/new/clone?repository-url=https://github.com/Samik123Mit/MoneyBuddy
+```
+
+During import, Vercel reads the root `vercel.json` and creates a single project
+with two services on one shared domain.
 
 ## Required Backend Configuration
 
@@ -32,35 +49,32 @@ At least one OAuth provider pair is also required:
 - `MONEYBUDDY_GITHUB_CLIENT_ID`
 - `MONEYBUDDY_GITHUB_CLIENT_SECRET`
 
-## Frontend Build Configuration
+## Optional Frontend Configuration
 
-Set the GitHub Actions repository variable:
-
-- `VITE_API_BASE_URL`
-
-`GITHUB_PAGES=true` is supplied by the workflow and switches the Vite base path to `/MoneyBuddy/`.
+Leave `VITE_API_BASE_URL` unset for the default Vercel setup so the frontend
+calls the same-origin `/api` routes. Set it only if you intentionally split the
+frontend and backend across different hosts.
 
 ## Release Flow
 
 1. Push changes to a branch.
 2. Merge to `main`.
-3. GitHub Actions deploys the frontend.
-4. Vercel deploys the backend from the connected repository.
-5. The migration workflow runs when schema files change.
+3. Vercel builds both services from the same repository.
+4. The migration workflow runs when schema files change.
 
 ## Verification
 
-Backend:
+Production checks:
 
 ```bash
-curl --fail <backend-url>/health
-curl --fail <backend-url>/health/db
-curl --fail <backend-url>/api/auth/oauth/providers
+curl --fail https://<project>.vercel.app/health
+curl --fail https://<project>.vercel.app/health/db
+curl --fail https://<project>.vercel.app/api/auth/oauth/providers
 ```
 
-Frontend:
+Frontend checks:
 
-1. Open the GitHub Pages site.
+1. Open `https://<project>.vercel.app/`.
 2. Verify OAuth bootstrap loads.
 3. Load a protected route directly.
 4. Verify upload, transactions, and analytics pages render.

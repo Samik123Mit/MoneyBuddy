@@ -78,9 +78,9 @@ describe('StaleAnalyticsAlert', () => {
   })
 
   it('stays silent when the backend does not report the field at all', async () => {
-    // The frontend deploys to GitHub Pages independently of the Vercel backend,
-    // so a newer client can meet an older API. Undefined means "nobody checked",
-    // which must not be rendered as a confident warning.
+    // Older deployments or local API targets can still omit this field.
+    // Undefined means "nobody checked", which must not be rendered as a
+    // confident warning.
     const older = { ...HEALTH }
     delete (older as Partial<DataHealth>).rollups_stale
     mocks.getDataHealth.mockResolvedValue(older)

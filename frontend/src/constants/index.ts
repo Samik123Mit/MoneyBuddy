@@ -58,8 +58,9 @@ export const ROUTES = {
 
 const _apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined
 
-// Local development uses Vite's same-origin /api proxy. Set VITE_API_BASE_URL
-// at build time only when production uses a separate API host.
+// Local development uses Vite's /api proxy, and the default Vercel deployment
+// keeps frontend and backend on the same origin. Set VITE_API_BASE_URL only
+// when deliberately splitting the API onto a different host.
 export const API_BASE_URL = _apiBaseUrl || ''
 
 export const API_ENDPOINTS = {

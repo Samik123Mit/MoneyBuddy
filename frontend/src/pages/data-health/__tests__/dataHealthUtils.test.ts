@@ -223,10 +223,9 @@ describe('buildQualityIssues', () => {
     })
 
     it('drops the check entirely when the backend does not report it', () => {
-      // The frontend deploys to GitHub Pages independently of the Vercel
-      // backend, so a newer client can meet an older API. An absent field is
-      // not a "false" -- announcing "Up to date" on a server that said nothing
-      // is the false confidence this page exists to remove.
+      // Older deployments or local API targets can still omit this field. An
+      // absent field is not a "false" -- announcing "Up to date" on a server
+      // that said nothing is the false confidence this page exists to remove.
       const stripped = health()
       delete (stripped as Partial<DataHealth>).rollups_stale
       const issues = buildQualityIssues(stripped)

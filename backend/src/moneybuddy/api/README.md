@@ -131,8 +131,9 @@ Important limits:
 
 Production is Vercel serverless:
 
-- `backend/vercel.json` routes requests.
-- `backend/api/index.py` exposes the FastAPI ASGI app to Vercel's Python runtime, plus a Mangum `handler` for an AWS Lambda target.
+- Root `vercel.json` routes `/api/*`, `/health`, and `/health/db` to the backend service.
+- `backend/api/index.py` is the Vercel FastAPI entrypoint and imports `moneybuddy.api.main:app`.
+- The same file also exposes a Mangum `handler` for AWS Lambda style targets.
 - Neon PostgreSQL provides production storage.
 - `.github/workflows/migrate.yml` applies Alembic migrations.
 

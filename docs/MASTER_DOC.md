@@ -51,8 +51,9 @@ flowchart TD
 ## Deployment Topology
 
 ```text
-GitHub Pages
-  -> FastAPI API on Vercel
+Vercel
+  -> Vite frontend at /
+  -> FastAPI API at /api and /health
   -> PostgreSQL
 ```
 

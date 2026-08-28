@@ -6,6 +6,8 @@ MoneyBuddy transforms transaction data from heterogeneous sources such as CSV an
 
 The platform combines a React/TypeScript frontend with a FastAPI backend, PostgreSQL persistence, and a modular analytics layer.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Samik123Mit/MoneyBuddy)
+
 ## Positioning
 
 > Full-stack financial data platform that ingests, reconciles, and analyzes transaction data from heterogeneous sources with idempotent processing and production-grade backend architecture.
@@ -155,6 +157,12 @@ MONEYBUDDY_FRONTEND_URL=http://localhost:5173
 MONEYBUDDY_JWT_SECRET_KEY=replace-with-at-least-32-random-characters
 MONEYBUDDY_ENCRYPTION_KEY=replace-with-a-separate-random-key
 ```
+
+## Deployment
+
+The default production target is a single Vercel project with two services:
+the Vite frontend at `/` and the FastAPI backend at `/api`. Import the GitHub
+repository into Vercel and it will read the root `vercel.json` automatically.
 
 ## CV Positioning
 

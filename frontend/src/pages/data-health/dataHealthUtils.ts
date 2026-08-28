@@ -153,8 +153,8 @@ export function buildQualityIssues(health: DataHealth): QualityIssue[] {
   const placeholderShare = share(health.placeholder_note_count)
   const uncategorizedShare = share(health.uncategorized_count)
 
-  // The frontend (GitHub Pages) and backend (Vercel) deploy independently, so a
-  // newer client can talk to a backend that does not report this field yet.
+  // Older deployments or local API targets may not report this field yet, so a
+  // newer client still has to treat its absence as "unknown", not "false".
   // Absent is NOT false: claiming "Up to date" because the server said nothing
   // is the false confidence this whole page exists to remove, so the check is
   // dropped from the list instead of being answered with a guess. The

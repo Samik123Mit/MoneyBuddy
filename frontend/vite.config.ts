@@ -4,11 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'node:path'
 
 // https://vite.dev/config/
-const isGitHubPages = process.env.GITHUB_PAGES === 'true'
-
 export default defineConfig({
-  // GitHub Pages project sites serve from /MoneyBuddy/; local dev uses root.
-  base: isGitHubPages ? '/MoneyBuddy/' : '/',
+  base: '/',
   plugins: [
     react(),
     VitePWA({
@@ -23,7 +20,6 @@ export default defineConfig({
         background_color: '#eaf0f7',
         display: 'standalone',
         orientation: 'portrait',
-        // start_url is relative to Vite's `base`, so it resolves to /MoneyBuddy/ on GitHub Pages.
         start_url: '.',
         scope: '.',
         icons: [
