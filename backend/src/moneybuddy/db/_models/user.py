@@ -426,15 +426,21 @@ class UserPreferences(Base):
     )
     provider_api_key_encrypted: Mapped[str | None] = mapped_column(
         "ai_api_key_encrypted",
-        Text, nullable=True, default=None
+        Text,
+        nullable=True,
+        default=None,
     )
     provider_daily_token_limit: Mapped[int | None] = mapped_column(
         "ai_daily_token_limit",
-        Integer, nullable=True, default=None
+        Integer,
+        nullable=True,
+        default=None,
     )
     provider_monthly_token_limit: Mapped[int | None] = mapped_column(
         "ai_monthly_token_limit",
-        Integer, nullable=True, default=None
+        Integer,
+        nullable=True,
+        default=None,
     )
 
     # Metadata

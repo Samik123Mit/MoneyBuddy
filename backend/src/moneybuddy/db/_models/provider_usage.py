@@ -44,7 +44,12 @@ class ProviderUsageLog(Base):
     input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    request_rounds: Mapped[int] = mapped_column("tool_rounds", Integer, nullable=False, default=1)
+    request_rounds: Mapped[int] = mapped_column(
+        "tool_rounds",
+        Integer,
+        nullable=False,
+        default=1,
+    )
 
     # Pre-computed USD cost so reports stay query-light.
     cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
